@@ -238,24 +238,64 @@ class CLI {
     
     // build summary`
     $data = CLI::get_filtered_data($args);
-    $rows = \WorklogCLI\WorklogSummary::summary_review($data,$args);
-    $total = 0;
+    $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
+    $fromdate = current($options['range']);
+    $todate = end($options['range']);
+    $rows = \WorklogCLI\WorklogSummary::summary_review1($data,$args);
     $income = 0;
-    foreach($rows as $row) {
-      $total += $row['total'];
+    foreach($data as $row) {
       $income += $row['$'];
     }
-    $today = date('l F jS Y',strtotime($date));
-    $output = $today." ($total hours) ($$income)\n";
-    $output .=  str_repeat('=',strlen($today))."\n\n";
-    
+    $income = \WorklogCLI\Format::format_cost($income);
+    if ($fromdate==$todate) {
+      $date_title = date('Y-m-d',strtotime($fromdate));
+    } else {
+      $date_title = date('Y-m-d',strtotime($fromdate))." to ".date('Y-m-d',strtotime($todate));
+    }
+    $output_title = $date_title." /// \$$income\n";
+    $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
+        
     // output
+    $output = $output_title;
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
-    $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
-    print \WorklogCLI\Output::border_box($options);
     
   }   
+  public static function op_review2($args) {
+    
+    // build summary`
+    $data = CLI::get_filtered_data($args);
+    $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
+    $fromdate = current($options['range']);
+    $todate = end($options['range']);
+    $rows = \WorklogCLI\WorklogSummary::summary_review2($data,$args);
+    $total = 0.0;
+    $mult = 0.0;
+    $income = 0.0;
+    $count = 0;
+    foreach($data as $row) {
+      $total += $row['hours'];
+      $mult += $row['multiplier'];
+      $income += $row['$'];
+      if (!empty($row['$'])) $count++;
+    }
+    $total = \WorklogCLI\Format::format_hours($total);
+    $income = \WorklogCLI\Format::format_cost($income);
+    $mult = number_format($mult / $count,1);
+    if ($fromdate==$todate) {
+      $date_title = date('Y-m-d',strtotime($fromdate));
+    } else {
+      $date_title = date('Y-m-d',strtotime($fromdate))." to ".date('Y-m-d',strtotime($todate));
+    }
+    $output_title = $date_title." /// \$$income ($total * $mult)\n";
+    $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
+    
+    // output
+    $output = $output_title;
+    $output .= \WorklogCLI\Output::whitespace_table($rows);
+    print \WorklogCLI\Output::border_box($output);
+    
+  }     
   public static function op_times($args) {
     
     // build summary`

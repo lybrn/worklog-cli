@@ -9,7 +9,7 @@ class WorklogFilter {
     foreach($parsed as $item) {
       if (!is_null($options['category'])) {
         $client = WorklogFilter::normalize($item['client']);
-        if ($client!=$options['category']) continue;
+        if ($client!=$options['category']) { continue; }
       }
       // if (!is_null($options['task'])) {
       //   $task = WorklogFilter::normalize($item['title']);
@@ -21,11 +21,14 @@ class WorklogFilter {
           $bracket = WorklogFilter::normalize($bracket);
           if ($bracket==$options['bracket']) { $found = true; break; }
         }
-        if (!$found) continue;
+        if (!$found) { continue; }
       }
       if (!is_null($options['range'])) {
         if ($item['started_at'] < $options['range'][0]) continue;
         if ($item['started_at'] > $options['range'][1]) continue;
+      }
+      if (!empty($options['incomeonly'])) {
+        if (empty($item['$'])) continue;
       }
       $filtered[] = $item;
     }
@@ -38,12 +41,13 @@ class WorklogFilter {
     $category = WorklogFilter::args_get_category($parsed,$args);
     $bracket = WorklogFilter::args_get_bracket($parsed,$args);
     $task = WorklogFilter::args_get_task($parsed,$args);
+    $incomeonly = WorklogFilter::args_get_income_flag($parsed,$args);
     // build options array
     $options = array();
     if (!is_null($range)) $options['range'] = $range;
     if (!is_null($category)) $options['category'] = $category;
     if (!is_null($bracket)) $options['bracket'] = $bracket;
-    if (!is_null($task)) $options['task'] = $task;
+    if (!is_null($incomeonly)) $options['incomeonly'] = $incomeonly;
     // return
     return $options;
     
@@ -173,6 +177,12 @@ class WorklogFilter {
         return $arg;
       }
     }      
+  }
+  public static function args_get_income_flag($data,$args) {
+    foreach($args as $arg) {
+      if ($arg=='$') return TRUE;
+    }      
+    return FALSE;
   }
   public static function brackets_list($data) {
     $worklog_brackets = array();

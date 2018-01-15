@@ -283,6 +283,41 @@ class WorklogSummary {
       return $sorted_lines;
       
     }    
+    public static function summary_review1($parsed,$args=array()) {
+            
+      $rows = array();
+      foreach($parsed as $item) {
+        $row = array();
+        $row['start'] = date('H:i',strtotime($item['started_at']));
+        $row['client'] = $item['client'];
+        $row['task'] = $item['title'];
+        $row['total'] = !empty($item['$']) ? '$'.\WorklogCLI\Format::format_cost($item['$']) : '';
+        $row['project'] = $item['project'];
+        $rows[] = $row;
+      }
+      return $rows;
+      
+    }
+    public static function summary_review2($parsed,$args=array()) {
+            
+      $rows = array();
+      foreach($parsed as $item) {
+        $row = array();
+        $row['start'] = date('Y-m-d H:i',strtotime($item['started_at']));
+        $row['client'] = $item['client'];
+        $row['client'] .= !empty($item['rate']) ? ' ($'.$item['rate'].')' : '';
+        $row['task'] = $item['title'];
+        $row['total'] = !empty($item['$']) ? '$'.\WorklogCLI\Format::format_cost($item['$']) : '';
+        $row['total'] .= !empty($item['$']) ? ' ('.$item['hours'].' * '.$item['multiplier'].')' : ''; 
+        $row['project'] = $item['project'];
+        $row['project'] .= !empty($item['task']) ? ' ('.$item['task'].')' : '';
+        $row['project'] = trim($item['project']);
+        $row['line'] = $item['line_number'];
+        $rows[] = $row;
+      }
+      return $rows;
+      
+    }    
     public static function summary_review($parsed,$args=array()) {
             
       $rows = array();

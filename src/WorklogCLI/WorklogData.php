@@ -382,7 +382,7 @@ class WorklogData {
               $entry['day_text'] = $day['day_text'];
               $entry['stamp'] = $day['timestamp'];
               $entry['date'] = date('Y-m-d',$day['timestamp']);
-              $entry['started_at'] = date('Y-m-d H:i:s',$lowest);
+              $entry['started_at'] = date('Y-m-d H:i:s', $lowest ?: $day['timestamp']);
               $entry['hours'] = $hours;
               $entry['title'] = $tasktitle;
               $entry['note'] = $taskcleannote;
