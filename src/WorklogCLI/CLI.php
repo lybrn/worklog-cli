@@ -239,18 +239,18 @@ class CLI {
     // build summary`
     $data = CLI::get_filtered_data($args);
     $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
-    $fromdate = current($options['range']);
-    $todate = end($options['range']);
+    $fromdate = strtotime(current($options['range']));
+    $todate = strtotime(end($options['range']));
     $rows = \WorklogCLI\WorklogSummary::summary_review1($data,$args);
     $income = 0;
     foreach($data as $row) {
       $income += $row['$'];
     }
     $income = \WorklogCLI\Format::format_cost($income);
-    if ($fromdate==$todate) {
-      $date_title = date('Y-m-d',strtotime($fromdate));
+    if ( date('Y-m-d',$fromdate) == date('Y-m-d',$todate) ) {
+      $date_title = date('Y-m-d',$fromdate);
     } else {
-      $date_title = date('Y-m-d',strtotime($fromdate))." to ".date('Y-m-d',strtotime($todate));
+      $date_title = date('Y-m-d',$fromdate)." to ".date('Y-m-d',$todate);
     }
     $output_title = $date_title." /// \$$income\n";
     $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
