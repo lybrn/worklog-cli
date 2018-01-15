@@ -1,0 +1,19 @@
+{
+    "name": "hellolindsay/worklog-cli",
+    "description": "A PHP client for the worklog files",
+    "type": "library",
+    "keywords": ["worklog", "client"],
+    "homepage": "https://github.com/hellolindsay/freshbooks-cli",
+    "license": "MIT",
+    "require": {
+        "php": ">=5.4.0",
+        "mustangostang/spyc": "^0.6.2",
+        "twig/twig": "~1.0",
+        "erusev/parsedown": "^1.6"
+    },
+    "autoload": {
+        "psr-0": {
+            "WorklogCLI\\": "src/"
+        }
+    }
+}

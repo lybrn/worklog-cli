@@ -1,0 +1,76 @@
+# Invoice: {{ invoice.period }} <br/> Work done for {{ client.shortname }}  
+
+---
+
+| Invoice | Details           
+|-|
+| Invoice number | {{ invoice.number }} 
+| Invoice date   | {{ invoice.date }} 
+| Payment due    | {{ invoice.due }} 
+| Total amount   | CA${{ pricing.total }}
+
+---
+
+**Lindsay Bernath**  
+34-216 Metcalfe St, Ottawa, Ontario, K2P 1R1   
+lindsay.bernath@gmail.com, 613 325 5156  
+
+**{{ client.fullname }}**  
+c/o {{ client.contactname }}  
+{{ client.address }}
+
+---
+
+> {{ invoice.period }} work done for {{ client.shortname }}  
+> **{{ pricing.hours }} hours**  
+> *Average: {{ timeline.hperweek }} hours weekly — {{ timeline.weeks }} weeks ({{ timeline.days }} days)*  
+
+---
+
+{% for project in projects %}
+### {{ project.name }} work - {{ project.hours }} hours
+
+| Task                                               | Status               | Hours
+|:---------------------------------------------------|:---------------------|:------------------|
+{% for task in project.tasks %}
+| {{ "% -50.50s"|format(task.title)               }} | {{ "% -20.40s"|format(task.status) }} | {{ task.hours }}
+{% endfor %}
+
+{% endfor %}
+
+---
+
+> | Hours | Rate | Subtotal | Tax Rate | Taxes | Total
+> |-
+> | {{ pricing.hours }} hours | CA${{ client.rate }} | CA${{ pricing.subtotal }} | {{ client.taxname }} *#75936 8897 RT0001* | CA${{ pricing.tax }} | CA${{ pricing.total }}
+  
+---  
+
+> **CA${{ pricing.total }}**
+>                                                            
+> Payable by Credit Card, Direct Deposit, Email Transfer, or Cheque   
+> Lindsay Bernath - 613 325 5156 - lindsay.bernath@gmail.com           
+
+---  
+
+## Details
+
+---
+
+| Date             | Time Entry Notes             | Hours             | Rate             | Line Total
+|:-----------------|:-----------------------------|:------------------|:-----------------|:------------------
+{% for entry in entries %}
+| {{ entry.date }} |  {{ entry.title }} ({{ entry.project }}, {{ entry.task }}): {{ entry.notes }} | {{ entry.hours }} | {{ entry.rate }} | {{ entry.total }}
+{% endfor %}
+
+---
+
+### Terms
+
+*Lindsay will invoice {{ client.shortname }} monthly. Along with each invoice, Lindsay will provide a breakdown of the hours worked per project. {{ client.shortname }} agrees to pay invoices within the 2 weeks of receiving them.*
+
+---
+
+### Note
+
+*Thank you! I look forward to continuing our projects this week. -Lindsay*
