@@ -296,6 +296,35 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     
   }     
+  public static function op_billing($args) {
+    
+    // build summary`
+    $data = CLI::get_filtered_data($args);
+    $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
+    $fromdate = strtotime(current($options['range']));
+    $todate = strtotime(end($options['range']));
+    $rows = \WorklogCLI\WorklogSummary::summary_billing($data,$args);
+    $income = 0;
+    $hours = 0;
+    foreach($data as $row) {
+      $income += $row['$'];
+      $hours += $row['total'];
+    }
+    $income = \WorklogCLI\Format::format_cost($income);
+    if ( date('Y-m-d',$fromdate) == date('Y-m-d',$todate) ) {
+      $date_title = date('Y-m-d',$fromdate);
+    } else {
+      $date_title = date('Y-m-d',$fromdate)." to ".date('Y-m-d',$todate);
+    }
+    $output_title = $date_title." /// $hours /// \$$income\n";
+    $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
+        
+    // output
+    $output = $output_title;
+    $output .= \WorklogCLI\Output::whitespace_table($rows);
+    print \WorklogCLI\Output::border_box($output);
+    
+  }     
   public static function op_times($args) {
     
     // build summary`

@@ -340,6 +340,31 @@ class WorklogSummary {
       return $rows;
       
     }
+    public static function summary_billing($parsed,$args=array()) {
+            
+      $client_bills = array();
+      foreach($parsed as $item) {
+        $client_bill = @$client_bills[ $item['client'] ] ?: array(
+          'client'=>$item['client'],
+          'projects'=>array(),
+          'sittings'=>0,
+          'hours'=>0.0,
+          'total'=>0.0,
+        );
+        if (!empty($item['total'] )) $client_bill['hours'] += \WorklogCLI\Format::format_hours($item['total']);
+        if (!empty($item['$'])) $client_bill['total'] += \WorklogCLI\Format::format_cost($item['$']);
+        $client_bill['sittings'] += 1;
+        if (!empty($item['project'])) $client_bill['projects'][ $item['project'] ] = $item['project'];
+        $client_bills[ $item['client'] ] = $client_bill;
+      }
+      foreach($client_bills as &$client_bill) {
+        $client_bill['total'] = '$'.$client_bill['total'];
+        $client_bill['sittings'] = $client_bill['sittings']; //.' sittings';
+        $client_bill['projects'] = count($client_bill['projects']); //.' projects';
+      }           
+      return $client_bills;
+      
+    }    
     public static function summary_brackets($parsed,$args=array()) {
             
       $brackets = array();
