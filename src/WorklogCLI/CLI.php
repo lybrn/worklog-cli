@@ -1,45 +1,45 @@
-<?php 
+<?php
 namespace WorklogCLI;
 class CLI {
-  
+
   public static function cli($argv) {
-    
+
     // set timezone
     date_default_timezone_set('America/Montreal');
-    
+
     // process arguments
     $args = array_slice($argv,1);
     $op = array_shift($args);
-    
+
     // call method for operation if there is one
     $op_method = 'op_'.$op;
     if (method_exists(get_called_class(),$op_method)) {
       call_user_func_array(get_called_class().'::'.$op_method,array($args));
       return;
-    } 
-    
-    // if we get this far, show usage info  
+    }
+
+    // if we get this far, show usage info
     CLI::op_usage($args);
-    
+
   }
   public static function get_filtered_data($args) {
-    
+
     // use current settings if something was left blank
     $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
     $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
     $worklog_default = $config['worklog']['worklog_default'];
     $worklog_file_path = "$worklog_dir/$worklog_default";
-    
+
     // parse and filter worklog
     $parsed = \WorklogCLI\WorklogData::get_data($worklog_file_path);
     $filtered = \WorklogCLI\WorklogFilter::filter_parsed($parsed,$args);
-    
+
     // return filtered
     return $filtered;
-    
+
   }
   public static function op_usage($args) {
-    
+
     // print usage info
     print "USAGE: worklog [op] [arg1] [arg2]\n";
 
@@ -50,29 +50,29 @@ class CLI {
     $worklog_file_path = "$worklog_dir/$worklog_default";
 
     $parsed = \WorklogCLI\WorklogData::get_data($worklog_file_path);
-    
+
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
 
     if (!empty($options)) {
-      print \WorklogCLI\Output::border_box($options);  
+      print \WorklogCLI\Output::border_box($options);
     }
-    
-    
+
+
   }
   public static function op_info() {
-    
+
     // use current settings if something was left blank
     $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
     $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
     $worklog_default = $config['worklog']['worklog_default'];
     $worklog_file_path = "$worklog_dir/$worklog_default";
-    
+
     // count lines
     $worklog_line_count = 0;
     $handle = fopen($worklog_file_path, "r");
     while(!feof($handle)){ $line = fgets($handle); $worklog_line_count++; }
     fclose($handle);
-    
+
     // output
     print \WorklogCLI\Output::border_box(array(
       'Path' => $worklog_file_path,
@@ -81,31 +81,31 @@ class CLI {
 
   }
   public static function op_dump() {
-    
+
     // use current settings if something was left blank
     $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
     $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
     $worklog_default = $config['worklog']['worklog_default'];
     $worklog_file_path = "$worklog_dir/$worklog_default";
-    
+
     $parsed = \WorklogCLI\MDON::parse_file($worklog_file_path);
-    
+
     print \WorklogCLI\Output::formatted_json($parsed);
-    
+
   }
-  
+
   public static function op_data($args) {
-    
+
     // get data
     $data = CLI::get_filtered_data($args);
-    
+
     // output data
     $output = Output::formatted_json($data);
     print $output;
-    //print Output::border_box($output);    
+    //print Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
     print \WorklogCLI\Output::border_box($options);
-    
+
   }
   public static function op_days($args) {
 
@@ -117,7 +117,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }    
+  }
   public static function op_daylines($args) {
 
     // build summary
@@ -128,7 +128,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }  
+  }
   public static function op_cats($args) {
 
     // build summary
@@ -139,7 +139,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }      
+  }
   public static function op_catlines($args) {
 
     // build summary
@@ -150,7 +150,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }    
+  }
   public static function op_tasks($args) {
 
     // build summary
@@ -161,7 +161,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }    
+  }
   public static function op_tasknames($args) {
 
     // build summary
@@ -172,7 +172,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }      
+  }
   public static function op_tasklines($args) {
 
     // build summary
@@ -183,7 +183,7 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }      
+  }
   public static function op_entries($args) {
 
     // build summary
@@ -194,16 +194,16 @@ class CLI {
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
 
-  }        
+  }
   public static function op_categories($args) {
 
     // get categories
     $data = CLI::get_filtered_data($args);
     $categories = \WorklogCLI\WorklogData::get_categories($data);
-    
+
     // output categories
     $output = Output::whitespace_table($categories);
-    print Output::border_box($output);    
+    print Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
 
@@ -226,16 +226,16 @@ class CLI {
     // get titles
     $data = CLI::get_filtered_data($args);
     $titles = \WorklogCLI\WorklogData::get_titles($data);
-    
+
     // output titles
     $output = Output::whitespace_table($titles);
     print Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
 
-  }    
+  }
   public static function op_review($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
@@ -254,15 +254,15 @@ class CLI {
     }
     $output_title = $date_title." /// \$$income\n";
     $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
-        
+
     // output
     $output = $output_title;
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
-    
-  }   
+
+  }
   public static function op_review2($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
@@ -289,15 +289,15 @@ class CLI {
     }
     $output_title = $date_title." /// \$$income ($total * $mult)\n";
     $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
-    
+
     // output
     $output = $output_title;
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
-    
-  }     
+
+  }
   public static function op_billing($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
@@ -318,15 +318,15 @@ class CLI {
     }
     $output_title = $date_title." /// $hours /// \$$income\n";
     $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
-        
+
     // output
     $output = $output_title;
     $output .= \WorklogCLI\Output::whitespace_table($rows);
     print \WorklogCLI\Output::border_box($output);
-    
-  }     
+
+  }
   public static function op_times($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_times($data,$args);
@@ -336,10 +336,10 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  }   
+
+  }
   public static function op_brackets($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_brackets($data,$args);
@@ -349,10 +349,10 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  }     
+
+  }
   public static function op_notes($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_notes($data,$args);
@@ -362,10 +362,10 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  }          
+
+  }
   public static function op_markdown($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_markdown($data,$args);
@@ -376,10 +376,10 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  }          
+
+  }
   public static function op_render($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_markdown($data,$args);
@@ -390,10 +390,10 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  }            
+
+  }
   public static function op_catinfo($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_category_info($data,$args);
@@ -404,10 +404,10 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  }    
+
+  }
   public static function op_invoiceyaml($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $rows = \WorklogCLI\WorklogSummary::summary_invoice($data,$args);
@@ -418,14 +418,14 @@ class CLI {
     print \WorklogCLI\Output::border_box($output);
     $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
     print \WorklogCLI\Output::border_box($options);
-    
-  } 
+
+  }
   public static function op_invoice($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $yaml_data = \WorklogCLI\WorklogSummary::summary_invoice($data,$args);
-    
+
     // twig
     $saved = \WorklogCLI\JsonConfig::config_get('worklog-config');
     $twigfile = $saved['worklog']['invoice_template'];
@@ -435,14 +435,15 @@ class CLI {
 
   }
   public static function op_invoicehtml($args) {
-    
+
     // build summary`
     $data = CLI::get_filtered_data($args);
     $yaml_data = \WorklogCLI\WorklogSummary::summary_invoice($data,$args);
-    
-    // markdown twig template
     $saved = \WorklogCLI\JsonConfig::config_get('worklog-config');
-    $twigfile = $saved['worklog']['invoice_template_md'];
+    $invoice_template_name = $saved['worklog']['invoice_template_name'];
+
+    // markdown twig template
+    $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md.twig';
     $twig = file_get_contents($twigfile);
     $vars = $yaml_data;
     $markdown = \WorklogCLI\Twig::process($twig,$vars)."\n";
@@ -450,51 +451,62 @@ class CLI {
     // output
     $output = \WorklogCLI\Output::markdown_html($markdown);
     $sections = explode("<hr/>",$output);
-    
+
     // markdown html template
-    $twigfile = $saved['worklog']['invoice_template_html'];
+    $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.html.twig';
     $twig = file_get_contents($twigfile);
     $vars = array('sections'=>$sections);
     $html = \WorklogCLI\Twig::process($twig,$vars)."\n";
     $output =  \WorklogCLI\Output::formatted_html($html);
 
     print $output;
-    
-    
-  }  
-             
+
+
+  }
+  public static function op_invoiceexport($args) {
+
+    // build summary`
+    $data = CLI::get_filtered_data($args);
+    $yaml_data = \WorklogCLI\WorklogSummary::summary_invoice($data,$args);
+    $invoice_number = $yaml_data['invoice']['number'];
+    if (empty($invoice_number)) die('Invoice number is empty');
+
+    ob_start();
+    CLI::op_invoicehtml($args);
+    $output = ob_get_clean();
+
+    file_put_contents("$invoice_number.html",$output);
+
+  }
+
   public static function op_config() {
-    
+
     // ask for app details
     $worklog_dir = readline("Enter path to worklogs directory (enter to skip): ");
     $worklog_default = readline("Enter default worklog (enter to skip): ");
-    $invoice_template_md = readline("Enter default invoice md template (enter to skip): ");
-    $invoice_template_html = readline("Enter default invoice html template (enter to skip): ");
-        
+    $invoice_template_name = readline("Enter default invoice template name (enter to skip): ");
+
     // use current settings if something was left blank
     $current = \WorklogCLI\JsonConfig::config_get('worklog-config');
     if (empty($worklog_dir) && !empty($current['worklog']['worklog_dir']))
       $worklog_dir = $current['worklog']['worklog_dir'];
     if (empty($worklog_default) && !empty($current['worklog']['worklog_default']))
       $worklog_default = $current['worklog']['worklog_default'];
-    if (empty($invoice_template_md) && !empty($current['worklog']['invoice_template_md']))
-      $invoice_template_md = $current['worklog']['invoice_template_md'];
-    if (empty($invoice_template_html) && !empty($current['worklog']['invoice_template_html']))
-      $invoice_template_html = $current['worklog']['invoice_template_html'];
-    
+    if (empty($invoice_template_name) && !empty($current['worklog']['invoice_template_name']))
+      $invoice_template_name = $current['worklog']['invoice_template_name'];
+
     // save config file
     \WorklogCLI\JsonConfig::config_set('worklog-config',array(
       'worklog'=>array(
         'worklog_dir'=>$worklog_dir,
         'worklog_default'=>$worklog_default,
-        'invoice_template_md'=>$invoice_template_md,
-        'invoice_template_html'=>$invoice_template_html,
+        'invoice_template_name'=>$invoice_template_name,
       ),
     ));
 
     // display saved data
     $saved = \WorklogCLI\JsonConfig::config_get('worklog-config');
-    print 'worklog-config.json: '; 
+    print 'worklog-config.json: ';
     print_r($saved);
 
   }
@@ -527,5 +539,11 @@ class CLI {
       }
     }
   }
-  
+  public function root() {
+    $script_location = $_SERVER['SCRIPT_FILENAME'];
+    $script_location = realpath($script_location);
+    $script_location = dirname($script_location);
+    return $script_location;
+  }
+
 }
