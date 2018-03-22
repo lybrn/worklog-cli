@@ -1,7 +1,7 @@
 <?php
 namespace WorklogCLI;
 class WorklogData {
-  
+
   public static function get_entries_data($parsed,$args=array()) {
     $entries = array();
     foreach($parsed as $k=>$item) {
@@ -20,7 +20,7 @@ class WorklogData {
       $entry['notes'] = $notes;
       $entry['rate'] = $rate;
       $entry['total'] = $total;
-      
+
       $entry['hours'] = $hours;
       $sortkey = strtotime($entry['started_at']).'-'.$k;
       $entries[ $sortkey ] = $entry;
@@ -36,7 +36,7 @@ class WorklogData {
     $todate->add(new \DateInterval('PT1S')); // add 1 second to 23:59:59
     $days = $todate->diff($fromdate)->format("%a") + 1;
     // // dont do this, daylight savings time makes it fail
-    // $days = $rangediff / (60.0 * 60.0 * 24.0); 
+    // $days = $rangediff / (60.0 * 60.0 * 24.0);
     $weeks = $days / 7.0;
     $timeline = array(
       'hours'=>0.0,
@@ -98,7 +98,7 @@ class WorklogData {
         'rate' => \WorklogCLI\Format::format_cost( trim($item['category_info']['clientrate'],'$') ),
         'taxpercent' => $item['category_info']['clienttaxpercent'],
         'taxname' => $item['category_info']['clienttaxname'],
-        //'details' => $item['category_info'],        
+        //'details' => $item['category_info'],
       );
     }
     return $clients;
@@ -113,11 +113,11 @@ class WorklogData {
         'period' => $item['category_info']['invoiceperiod'],
         'date' => $item['category_info']['invoicedate'],
         'due' => $item['category_info']['invoicedue'],
-        //'details' => $item['category_info'],        
+        //'details' => $item['category_info'],
       );
     }
     return $invoices;
-  }  
+  }
   public static function get_projects_data($parsed) {
     $projects = array();
     // projects
@@ -145,11 +145,11 @@ class WorklogData {
       )));
       $sorted[ $sortkey ] = $project;
     }
-    krsort($sorted,SORT_NATURAL);    
+    krsort($sorted,SORT_NATURAL);
     $sorted = array_values($sorted);
-    // return 
+    // return
     return $sorted;
-    
+
   }
   public static function get_tasks_data($parsed) {
     $tasks = array();
@@ -181,14 +181,14 @@ class WorklogData {
       )));
       $sorted[ $sortkey ] = $task;
     }
-    krsort($sorted,SORT_NATURAL);    
+    krsort($sorted,SORT_NATURAL);
     $sorted = array_values($sorted);
-    // return 
+    // return
     return $sorted;
-    
-  }  
+
+  }
   public static function get_grouped_data($parsed) {
-    
+
     $grouped_data = array();
     $projects = WorklogData::get_projects_data($parsed);
     $tasks = WorklogData::get_tasks_data($parsed);
@@ -202,10 +202,10 @@ class WorklogData {
       $projectkey = \WorklogCLI\Format::normalize_key($task['project']);
       $grouped_data[ $projectkey ]['tasks'][] = $task;
     }
-    return array_values($grouped_data);    
+    return array_values($grouped_data);
   }
   public static function get_categories($data) {
-    
+
     $worklog_categories = array();
     foreach($data as $data=>$item) {
       $key = \WorklogCLI\Format::normalize_key($item['client']);
@@ -221,10 +221,10 @@ class WorklogData {
     ksort($worklog_categories);
     $rows = array_values($worklog_categories);
     return $rows;
-    
+
   }
   public static function get_titles($data) {
-    
+
     $worklog_titles = array();
     foreach($data as $data=>$item) {
       $cat = array();
@@ -235,10 +235,10 @@ class WorklogData {
     ksort($worklog_categories);
     $rows = array_values($worklog_categories);
     return $rows;
-    
-  }  
+
+  }
   public static function get_data($filepath,$options=array()) {
-    
+
     $parsed = \WorklogCLI\MDON::parse_file($filepath);
     $output = array();
     $category_info = array();
@@ -268,7 +268,7 @@ class WorklogData {
           if (!empty($category['rows'])) {
             //$lastinfo = null;
             foreach($category['rows'] as $tasks) {
-              
+
               if ($tasks['style']=='*') {
                 $info = explode(':',$tasks['text'],2);
                 if (count($info)!=2) continue;
@@ -279,12 +279,12 @@ class WorklogData {
                 continue;
               }
               if ($tasks['style']=='.') {
-                if (is_array($lastinfo)) {  
+                if (is_array($lastinfo)) {
                   $lastinfo[] = trim(ltrim($tasks['text'],'.'));
-                }                
+                }
                 continue;
               }
-                            
+
               $output_notes = array();
               $clean_notes = array();
               $time_brackets = array();
@@ -293,7 +293,7 @@ class WorklogData {
                   $output_notes[] = $notes['text'];
                   $note_skip = FALSE;
                   $note_brackets = WorklogData::line_get_brackets($notes['text']);
-                  foreach($note_brackets as $note_time) { 
+                  foreach($note_brackets as $note_time) {
                     $note_time_offset = WorklogData::time_get_offset($note_time);
                     if (!empty($note_time_offset) && $note_time_offset < 0) { $note_skip = TRUE; }
                   }
@@ -320,7 +320,7 @@ class WorklogData {
               $offset = 0;
               $applied = array();
               foreach($task_brackets as $time) {
-                // get offset 
+                // get offset
                 $time_offset = WorklogData::time_get_offset($time);
                 if (!empty($time_offset)) {
                   $offset += $time_offset;
@@ -335,9 +335,9 @@ class WorklogData {
                   if (empty($highest)) $highest = $timepoint;
                   if ($timepoint < $lowest) $lowest = $timepoint;
                   if ($timepoint > $highest) $highest = $timepoint;
-                  $used[] = $time;     
+                  $used[] = $time;
                   $time_brackets[] = $time;
-                  continue;             
+                  continue;
                 }
               }
               foreach($task_brackets as $k=>$v) {
@@ -356,28 +356,28 @@ class WorklogData {
                 //$task_brackets
               );
               $free_brackets = $all_brackets;
-              
+
               $length = $highest - $lowest + $offset;
               $hours = \WorklogCLI\Format::format_hours( round($length / "60.0" / "60.0",'2') );
               $total = \WorklogCLI\Format::format_hours( $hours * $multipler );
               $tasktitle = WorklogData::line_clean_brackets($tasktitle);
               $tasknote = WorklogData::line_clean_brackets($tasknote);
               $taskline = WorklogData::line_clean_brackets($taskline);
-              
+
               $projects = @$category_info[ $cleancategory ]['projects'] ?: array();
               $taskproject = WorklogData::brackets_match_item($title_brackets,$projects);
               $tasks = @$category_info[ $cleancategory ]['tasks'] ?: array();
               $tasktask = WorklogData::brackets_match_item($title_brackets,$tasks);
               $statuses = @$category_info[ $cleancategory ]['statuses'] ?: array();
               $taskstatus = WorklogData::brackets_match_item($title_brackets,$statuses);
-              
+
               $free_brackets = WorklogData::brackets_remove_item($free_brackets,array(
                 $taskproject,
                 $tasktask,
                 $taskstatus,
                 $rate,
               ));
-              
+
               $entry = array();
               $entry['day_text'] = $day['day_text'];
               $entry['stamp'] = $day['timestamp'];
@@ -406,8 +406,8 @@ class WorklogData {
               $entry['day_line_number'] = $day_line_number;
               $entry['cat_line_number'] = $cat_line_number;
               $entry['line_number'] = $task_line_number;
-              
-              
+
+
               $timestamp_key = date('Y-m-d',$day['timestamp']);
               if (!empty($options['bracket'])) {
                 foreach($entry['brackets'] as $bracket) {
@@ -416,10 +416,10 @@ class WorklogData {
                     // $days[ $timestamp_key ][ $entry_category ][] = $entry;
                     break;
                   }
-                }              
+                }
               } else {
-                $days[] = $entry;  
-                // $days[ $timestamp_key ][ $entry_category ][] = $entry;  
+                $days[] = $entry;
+                // $days[ $timestamp_key ][ $entry_category ][] = $entry;
               }
 
             }
@@ -428,7 +428,7 @@ class WorklogData {
       }
     }
     return $days;
-  
+
   }
   public static function brackets_match_item($brackets,$items) {
     $match = null;
@@ -456,37 +456,37 @@ class WorklogData {
       }
     }
     return array_values($brackets_without_items);
-  }  
+  }
   public static function line_get_brackets($text) {
-  
+
     $matches = array();
     preg_match_all('/\(([^\)]+)\)/i',$text,$matches);
     $return = @is_array($matches[1]) ? $matches[1] : array();
     return $return;
-  
+
   }
   public static function brackets_get_multiplier($brackets) {
-  
+
     foreach($brackets as $bracket) {
       $is_starred = substr($bracket,0,1)=='*';
       $is_numeric = is_numeric(substr($bracket,1));
       if ($is_starred && $is_numeric) return substr($bracket,1);
     }
     return null;
-  
+
   }
   public static function brackets_get_rate($brackets) {
-  
+
     foreach($brackets as $bracket) {
       $is_starred = substr($bracket,0,1)=='$';
       $is_numeric = is_numeric(substr($bracket,1));
       if ($is_starred && $is_numeric) return substr($bracket,1);
     }
     return null;
-  
+
   }
   public static function timetool_filter_since($compare,$compare_since) {
-  
+
     // compare
     if (empty($compare)) return false;
     if (!is_numeric($compare)) $compare = strtotime($compare);
@@ -502,10 +502,10 @@ class WorklogData {
     // ));
     // return
     return ( $compare >= $compare_since );
-  
+
   }
   public static function timetool_filter_until($compare,$compare_until) {
-  
+
     // compare
     if (empty($compare)) return false;
     if (!is_numeric($compare)) $compare = strtotime($compare);
@@ -521,10 +521,10 @@ class WorklogData {
     // ));
     // return
     return ( $compare <= $compare_until );
-  
-  }  
+
+  }
   public static function timetool_filter_compare($compare,$compare_to) {
-  
+
     // compare
     if (empty($compare)) return false;
     $compare = strtolower($compare);
@@ -537,39 +537,44 @@ class WorklogData {
     if (empty($compare_to)) return false;
     // return
     return ( $compare == $compare_to );
-  
+
   }
   public static function time_get_offset($time) {
-  
-    $offset = null;
+
+    $offset = 0;
     if (preg_match('/[\+\-]/i',$time)) {
       $hours = preg_match('/h/i',$time);
       $mins = preg_match('/m/i',$time);
       if (!$hours && !$mins && !($hours && $mins)) return null;
       if (preg_match('/[\+]/i',$time)) {
         $offset = preg_replace('/[^0-9\.]+/i','',$time);
+        if (!is_numeric($offset)) $offset = 0;
         $offset = $hours ? floor( $offset * 60 * 60 ) : floor( $offset * 60 );
-      } 
-      else if (preg_match('/[\-]/i',$time)) {
+      }
+      else if (preg_match('/^\s*[\-]/i',$time)) {
         $offset = preg_replace('/[^0-9\.]+/i','',$time);
-        $offset = $hours ? floor( $offset * 60 * 60 ) : floor( $offset * 60 );
+        if (!is_numeric($offset)) $offset = 0;
+        $offset = $hours ?
+          floor( $offset * 60 * 60 ) :
+          floor( $offset * 60 );
+
         $offset *= -1;
       }
     }
     return $offset;
-  
+
   }
   public static function line_clean_brackets($text) {
-  
+
     $text = preg_replace("/\s*\([^\(]+\)/i","",$text);
     $text = trim($text);
     $text = trim($text,'.');
     $text = trim($text);
     return $text;
-  
+
   }
   public static function array_explode_values($delimiter,$array) {
-  
+
     $final = array();
     if (is_array($array)) foreach($array as $k=>$value) {
       foreach(explode($delimiter,$value) as $v) {
@@ -577,11 +582,11 @@ class WorklogData {
         if (!empty($v)) $final[] = $v;
       }
     }
-    return $final;  
-  
+    return $final;
+
   }
   public static function time_get_timestamp_on_day($day_timestamp,$time,$next_day_if_after_timestamp) {
-  
+
     $timepoint = null;
     if (!preg_match('/[\+\-]/i',$time)) {
       $am = preg_match('/a/i',$time);
@@ -592,13 +597,13 @@ class WorklogData {
       $timestr = preg_replace('/[^0-9\:]+/i','',$time);
       if (empty($timestr)) return null;
       if ($am) $timestr .= 'am';
-      else if ($pm) $timestr .= 'pm'; 
+      else if ($pm) $timestr .= 'pm';
       $timepoint = strtotime(date('Y-m-d',$day_timestamp).' '.$timestr);
       if ($timepoint < $next_day_if_after_timestamp) $timepoint += (24 * 60 * 60);
       if (empty($timepoint)) return null;
     }
     return $timepoint;
-  
-  }      
+
+  }
 
 }

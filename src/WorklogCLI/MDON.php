@@ -1,22 +1,22 @@
-<?php 
+<?php
 namespace WorklogCLI;
 class MDON {
-  
+
   public function parse_file($filepath) {
-    
+
     // confirm file exists
     if (!is_file($filepath)) throw new \Exception("No such file: $filepath");
-    
+
     // get file contents and parse
     $contents = file_get_contents($filepath);
     $parsed = MDON::parse($contents);
-    
+
     // return parsed contents
-    return $parsed; 
-    
+    return $parsed;
+
   }
   public function parse($contents) {
-    
+
     // break contents into lines
     $lines = explode("\n",$contents);
     // array that will hold selected rows
@@ -28,7 +28,7 @@ class MDON {
     // current_style
     $current_style = null;
     $current_depth = 0;
-    
+
     // for each line:
     foreach($lines as $i=>$line) {
       if ($depth = MDON::get_depth($lines,$i,$line,$current_style,$current_depth)) {
@@ -46,12 +46,12 @@ class MDON {
         );
       }
     }
-    
+
     // use row data to build a tree
     $tree = array();
     // array that holds stack of parent rows
     $stack = array();
-    
+
     // for each row
     foreach($rows as $r => $row) {
       // if the stack is empty, add this row to the stack
@@ -61,9 +61,9 @@ class MDON {
         // add row to tree
         $tree[] = &$rows[$r];
         //print ".1/0: ".$row['text']."\n";
-      } 
-      
-      // if this row as at the same depth as the last item on the stack, 
+      }
+
+      // if this row as at the same depth as the last item on the stack,
       // then pop off last item and replace with this one
       else if ($row['depth'] == count($stack)) {
         // pop last item off stack
@@ -75,9 +75,9 @@ class MDON {
         // add row to stack
         $stack[] = &$rows[$r];
         //print "=".$row['depth']."/$top: ".$row['text']."\n";
-      } 
-    
-      // if this row is deeper than the last item of the stack, 
+      }
+
+      // if this row is deeper than the last item of the stack,
       // then add this item to the top of the stack
       else if ($row['depth'] > count($stack)) {
         // leave all current items on the stack
@@ -88,8 +88,8 @@ class MDON {
         // add row to stack
         $stack[] = &$rows[$r];
         //print "+".$row['depth']."/$top: ".$row['text']."\n";
-      } 
-    
+      }
+
       // if this item is shallower than the last item on the stack,
       // then pop stack items to get to that depth-1, and then add this item
       else if ($row['depth'] < count($stack)) {
@@ -105,17 +105,17 @@ class MDON {
           // add row to tree
           $tree[] =  &$rows[$r];
         }
-        
+
         // add row to stack
         $stack[] = &$rows[$r];
         //print "-".$row['depth']."/$top: ".$row['text']."\n";
       }
     }
-    
+
     // return tree
     return $tree;
-    
-  }   
+
+  }
   public function get_depth($lines,$i,$line,$current_style,$current_depth) {
 
     // get the current line
@@ -124,12 +124,12 @@ class MDON {
     $nextline = $lines[$i+1];
 
     // h1 -- next line is "==="+
-    if (preg_match('/^===+$/i',$nextline)) {
+    if (preg_match('/^===+\s*$/i',$nextline)) {
       return 1;
     }
 
     // h2 -- next line is "---"+
-    if (preg_match('/^---+$/i',$nextline)) {
+    if (preg_match('/^---+\s*$/i',$nextline)) {
       return 2;
     }
 
@@ -148,14 +148,14 @@ class MDON {
       if (in_array($current_style,array('*','.'))) {
         return $current_depth;
       } else {
-        return $current_depth + 1;  
-      }      
+        return $current_depth + 1;
+      }
     }
 
     // everything else -- no depth or meaning
     return FALSE;
-    
-  }  
+
+  }
   public function get_style($lines,$i,$line) {
 
     // get the current line
@@ -164,12 +164,12 @@ class MDON {
     $nextline = $lines[$i+1];
 
     // h1 -- next line is "==="+
-    if (preg_match('/^===+$/i',$nextline)) {
+    if (preg_match('/^===+\s*$/i',$nextline)) {
       return "===";
     }
 
     // h2 -- next line is "---"+
-    if (preg_match('/^---+$/i',$nextline)) {
+    if (preg_match('/^---+\s*$/i',$nextline)) {
       return "---";
     }
 
@@ -195,8 +195,8 @@ class MDON {
 
     // everything else -- no style or meaning
     return FALSE;
-    
-  }   
+
+  }
   public function get_matched($lines,$i,$line) {
 
     // get the current line
@@ -205,12 +205,12 @@ class MDON {
     $nextline = $lines[$i+1];
 
     // h1 -- next line is "==="+
-    if (preg_match('/^===+$/i',$nextline)) {
+    if (preg_match('/^===+\s*$/i',$nextline)) {
       return trim($line)."\n".trim($nextline);
     }
 
     // h2 -- next line is "---"+
-    if (preg_match('/^---+$/i',$nextline)) {
+    if (preg_match('/^---+\s*$/i',$nextline)) {
       return trim($line)."\n".trim($nextline);
     }
 
@@ -236,6 +236,6 @@ class MDON {
 
     // everything else -- no style or meaning
     return FALSE;
-    
-  }      
+
+  }
 }
