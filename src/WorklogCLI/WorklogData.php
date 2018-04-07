@@ -177,7 +177,7 @@ class WorklogData {
       $task['hours'] = \WorklogCLI\Format::format_hours( $task['hours'] );
       $sortkey = \WorklogCLI\Format::normalize_key(implode('-',array(
         $task['hours'],
-        $task['name'],
+        $task['title'],
       )));
       $sorted[ $sortkey ] = $task;
     }
