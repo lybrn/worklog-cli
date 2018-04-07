@@ -1,29 +1,29 @@
-# Invoice: {{ invoice.period }} <br/> Work done for {{ client.shortname }}  
+# Invoice: {{ invoice.period }} <br/> Work done for {{ client.shortname }}
 
 ---
 
-| Invoice | Details           
+| Invoice | Details
 |-|
-| Invoice number | {{ invoice.number }} 
-| Invoice date   | {{ invoice.date }} 
-| Payment due    | {{ invoice.due }} 
+| Invoice number | {{ invoice.number }}
+| Invoice date   | {{ invoice.date }}
+| Payment due    | {{ invoice.due }}
 | Total amount   | CA${{ pricing.total }}
 
 ---
 
-**Lindsay Bernath**  
-34-216 Metcalfe St, Ottawa, Ontario, K2P 1R1   
-lindsay.bernath@gmail.com, 613 325 5156  
+**Lindsay Bernath**
+34-216 Metcalfe St, Ottawa, Ontario, K2P 1R1
+lindsay.bernath@gmail.com, 613 325 5156
 
-**{{ client.fullname }}**  
-c/o {{ client.contactname }}  
+**{{ client.fullname }}**
+c/o {{ client.contactname }}
 {{ client.address }}
 
 ---
 
-> {{ invoice.period }} work done for {{ client.shortname }}  
-> **{{ pricing.hours }} hours**  
-> *Average: {{ timeline.hperweek }} hours weekly — {{ timeline.weeks }} weeks ({{ timeline.days }} days)*  
+> {{ invoice.period }} work done for {{ client.shortname }}
+> **{{ pricing.hours }} hours**
+> *Average: {{ timeline.hperweek }} hours weekly — {{ timeline.weeks }} weeks ({{ timeline.days }} days)*
 
 ---
 
@@ -33,7 +33,7 @@ c/o {{ client.contactname }}
 | Task                                               | Status               | Hours
 |:---------------------------------------------------|:---------------------|:------------------|
 {% for task in project.tasks %}
-| {{ "% -50.50s"|format(task.title)               }} | {{ "% -20.40s"|format(task.status) }} | {{ task.hours }}
+| {{ task.title                                   }} | {{ task.status    }} | {{ task.hours }}
 {% endfor %}
 
 {% endfor %}
@@ -43,15 +43,15 @@ c/o {{ client.contactname }}
 > | Hours | Rate | Subtotal | Tax Rate | Taxes | Total
 > |-
 > | {{ pricing.hours }} hours | CA${{ client.rate }} | CA${{ pricing.subtotal }} | {{ client.taxname }} *#75936 8897 RT0001* | CA${{ pricing.tax }} | CA${{ pricing.total }}
-  
----  
+
+---
 
 > **CA${{ pricing.total }}**
->                                                            
-> Payable by Credit Card, Direct Deposit, Email Transfer, or Cheque   
-> Lindsay Bernath - 613 325 5156 - lindsay.bernath@gmail.com           
+>
+> Payable by Credit Card, Direct Deposit, Email Transfer, or Cheque
+> Lindsay Bernath - 613 325 5156 - lindsay.bernath@gmail.com
 
----  
+---
 
 ## Details
 
