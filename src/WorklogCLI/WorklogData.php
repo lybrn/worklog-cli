@@ -290,6 +290,7 @@ class WorklogData {
               $time_brackets = array();
               if (!empty($tasks['rows'])) {
                 foreach($tasks['rows'] as $notes) {
+                  if ($notes['style']!='+') continue;
                   $output_notes[] = $notes['text'];
                   $note_skip = FALSE;
                   $note_brackets = WorklogData::line_get_brackets($notes['text']);
