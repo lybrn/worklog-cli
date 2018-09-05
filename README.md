@@ -43,7 +43,7 @@ And example configuration would be:
 - Default worklog: `worklog-2020.txt`
 - Default template name: `invoice-template-default`
 
-The worklogs directory can be any absolute path. I should, ideally, live inside 
+The worklogs directory can be any absolute path. It should, ideally, live inside 
 a cloud backed-up folder like Dropbox or Google Drive. 
 
 The default worklog is the file that will be parsed by default. This should be a 
@@ -56,11 +56,20 @@ is `invoice-template-default` - so use that.
 Usage Examples
 --------------
 
+Once the worklog-cli is installed and configured properly, you will be able to
+run the `worklog` command from terminal to interact with the worklog. In all
+cases, it does not matter what folder you are in when you run this comman.
+
+Here are some simple example use cases:
+
 `worklog review today`  
 Review the work you did today
 
 `worklog review today $`  
 Review paid work only you did today
+
+`worklog review yesterday`  
+Review the work you did yesterday
 
 `worklog review mon fri`  
 Review the work you did last monday through last friday
@@ -84,10 +93,11 @@ for the current month.
 
 1. At the top of your worklog, add an entry for the client you want to invoice. Use the 
 format below to add details about your client. Note that in the format below, some
-data is not indented as you might expect. Copy this template exactly:
+data is not indented as you might expect. Copy this template exactly, and triple
+check what you entered. In some cases this data is used to do financial math.
 
 ```
-Mike's Pizza
+Mike's Pizza ($75)
 ------------
 
 * Client Full name: Mike's Pizzeria and Subway House
@@ -115,30 +125,43 @@ Mike's Pizza
 . Setup
 ```
 
-2. Next, scroll down to the first day of the month your invoicing for, add another new entry
-for the client. This time you'll add information about the current invoice. Copy this 
-template exactly:
+2. Next, scroll down in your worklog to the first day of the month you'll be invoicing for, add another new entry
+for the client. This time you'll add information about the current invoice. 
+
+Copy this template exactly:
 
 ```
 Sunday October 1st, 2020
 ========================
 
-Mike's Pizza
+Mike's Pizza ($75)
 ------------
 
 * Invoice Data
-* Invoice Number: Invoice-Mikes-20201031-101
+* Invoice Number: Invoice-AB-Mikes-20201031-101
 * Invoice Date: 2020-10-31 
 * Invoice Due: 2020-11-30
 * Invoice Period: November 2020
 * Invoice Work Type: Task work
 ```
 
+As part of this step you'll need to choose an invoice number format. I suggest:
+
+`Invoice-AB-Mikes-20201031-101`
+
+That is:
+
+- `Invoice-`
+- `AB-`, your initials
+- `Mikes`, client shortname
+- `20201031`, last day of the invoice period
+- `101`, a sequential number starting from 101
+
 3. Run: `worklog days`
 
 This will list all dates in your worklog. Look at the top and bottom of the list and make sure
-there are any badly parsed dates. You dont' want to see any dates in the future or in the past. 
-I practice, bad dates usually show up in 1970. If there are any bad dates, find then in your worklog
+there aren't any badly parsed dates. You don't want to see any dates in the future or in the past. 
+In practice, bad dates usually show up in 1970. If there are any bad dates, find them in your worklog
 file and fix them, then repeat this step to confirm all is good.
 
 4. Run: `worklog cats`
@@ -151,14 +174,14 @@ file and run this command again to confirm all is good.
 
 5. Run: `worklog cats month clientname`
 
-This will print all the categories for the given munch that match clientname. Now that you've done the 
+This will print all the categories for the given month that match clientname. Now that you've done the 
 first two steps above, this step should show a single row - just your clientname and it's correct rate.
 
 6. Run: `worklog brackets month clientname`
 
 This will show every value placed in brackets next to your dates, categories or sittings. So you should
-see the clients rate, and your should see the names of any project names you are using. Confirm that all 
-project names are written once and spelled correctly. If you want to change the
+see the clients rate, and your should see the names of any project names, statuses, or task types you are 
+using. Confirm that all project names are written once and spelled correctly. If you want to change the
 name of a project, now is a good time to find-replace it throughout your worklog file.
  
 7. Run: `worklog titles month clientname`
@@ -183,16 +206,16 @@ The line number for the sitting is also mentioned in case it helps.
 
 This will output the total time spent on each task and project. This is where you match the time you've 
 spent against the time you estimate, or intended to spend. If times are two low or two high, you can 
-adjust them in your worklog. 
+adjust them in your worklog but changing sitting times or adding multiplier brackets.
 
 10. Run: `worklog notes month clientname`
 
-This step is the bulk of the work. It will output the sitting title and all the completed subtask for 
+This step is the bulk of the work. It will output all the completed subtask notes for 
 every sitting. The goal is to read through every note, top to bottom, and make sure they make sufficient
 sense. The more thorough you were when writing these, the less work you will have. In general, the notes
 should be readable by the person receiving the invoice. That doesn't mean they need to understand every
-technical word, but they should be read it as a properly constructed series of words. Read through everything
-correcting and inproving in the worklog as you go. 
+technical word, but they should be able to read it as a properly constructed series of words. Read through 
+everything correcting and improving subtask notes in the worklog as you go. 
 
 11. Run: `worklog invoicehtml month clientname > ~/Google\ Drive/Invoices/invoice.html`
 
@@ -202,5 +225,12 @@ it in a browser.
 *Note:* You'll want to copy the template CSS files into this folder the first time. So if
 you are using `invoice-template-default` in your config file, copy these into the invoices folder:
 
-- invoice-template-default.custom.css
-- invoice-template-default.stackedit.css
+- `worklog-cli/templates/invoice-template-default/invoice-template-default.custom.css`
+- `worklog-cli/templates/invoice-template-default/invoice-template-default.stackedit.css`
+
+After viewing the invoice, confirm everything looks good. If you want to make any changes, change
+them in your worklog and then generate the invoice file again.
+
+12. Print the browser window as a PDF file. 
+
+Adjust the scale of the print so that the summary shows up cleanly on page 1.
