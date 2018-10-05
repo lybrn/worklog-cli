@@ -507,5 +507,67 @@ class WorklogSummary {
       return $lines;
       
     }        
-  
+    public static function summary_logexport($parsed,$args=array()) {
+            
+      $current_day = null;
+      $current_client = null;
+      $owner = null;
+      
+      foreach($args as $arg) 
+        if (substr($arg,0,1)=='@') 
+          $owner = $arg;
+      
+      $lines = array();
+      foreach($parsed as $item) {
+                
+        if ($current_day != $item['day_text']) {
+          $line = $item['day_text'];
+          if (!empty($owner)) 
+            $line .= ' ('.$owner.')';
+          $lines[] = $line;
+          $lines[] = str_repeat('=',strlen($item['day_text']));
+          $lines[] = '';
+          $current_day = $item['day_text'];
+          $current_client = null;
+        }
+
+        if ($current_client != $item['client']) {
+          $line = $item['client'];
+          if (!empty($owner)) 
+            $line .= ' ('.$owner.')';
+          // if (!empty($item['rate'])) 
+          //   $line .= ' ($' . $item['rate'] . ')';
+          $lines[] = $line;
+          $lines[] = str_repeat('-',strlen($item['client']));
+          $lines[] = '';
+          $current_client = $item['client'];
+        }
+
+        $line = '### '.$item['title'];
+        $matched_brackets = array();
+        if (!empty($item['project'])) $matched_brackets[] = $item['project'];
+        if (!empty($item['task'])) $matched_brackets[] = $item['task'];
+        if (!empty($item['status'])) $matched_brackets[] = $item['status'];
+        if (!empty($matched_brackets)) 
+          $line .= ' ('.implode(' / ',$matched_brackets).')';        
+        if (!empty($item['total']) && (float) $item['total'] != 0) 
+          $line .= ' (+'.$item['total'].'h)';
+        if (!empty($owner)) 
+          $line .= ' ('.$owner.')';
+
+
+        $lines[] = $line;
+        $lines[] = '';
+        
+        foreach($item['notes'] as $note_text) {
+
+          $lines[] = '+ '.$note_text;
+        }
+
+        $lines[] = ' ';
+      }
+      $lines = array_values($lines);
+      return $lines;
+      
+    }     
 }

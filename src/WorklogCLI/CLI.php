@@ -434,6 +434,20 @@ class CLI {
     print \WorklogCLI\Twig::process($twig,$vars)."\n";
 
   }
+  public static function op_logexport($args) {
+    
+    // build summary`
+    $data = CLI::get_filtered_data($args);
+    $rows = \WorklogCLI\WorklogSummary::summary_logexport($data,$args);
+
+    // output
+    $output .= \WorklogCLI\Output::whitespace_table($rows);
+    //print $output;
+    print \WorklogCLI\Output::border_box($output);
+    $options = \WorklogCLI\WorklogFilter::get_options($parsed,$args);
+    print \WorklogCLI\Output::border_box($options);
+
+  }
   public static function op_invoicehtml($args) {
 
     // build summary`
