@@ -237,9 +237,9 @@ class WorklogData {
     return $rows;
 
   }
-  public static function get_data($filepath,$options=array()) {
+  public static function get_data($filepaths,$options=array()) {
 
-    $parsed = \WorklogCLI\MDON::parse_file($filepath);
+    $parsed = \WorklogCLI\MDON::parse_files($filepaths);
     $output = array();
     $category_info = array();
 

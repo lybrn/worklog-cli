@@ -27,11 +27,24 @@ class CLI {
     // use current settings if something was left blank
     $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
     $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
-    $worklog_default = $config['worklog']['worklog_default'];
-    $worklog_file_path = "$worklog_dir/$worklog_default";
+    $worklog_file_paths = []; 
+
+    // alt worklog paths
+    foreach($args as $arg) {
+      $alt_file_path = "$worklog_dir/$arg";
+      if (is_file($alt_file_path)) {
+        $worklog_file_paths[] = $alt_file_path;
+      }
+    }
+
+    // if no worklog provided in args, use default worklog
+    if (empty($worklog_file_paths)) {
+      $worklog_default = $config['worklog']['worklog_default'];
+      $worklog_file_paths[] = "$worklog_dir/$worklog_default";
+    }
 
     // parse and filter worklog
-    $parsed = \WorklogCLI\WorklogData::get_data($worklog_file_path);
+    $parsed = \WorklogCLI\WorklogData::get_data($worklog_file_paths);
     $filtered = \WorklogCLI\WorklogFilter::filter_parsed($parsed,$args);
 
     // return filtered
@@ -80,6 +93,14 @@ class CLI {
     ));
 
   }
+  public static function op_options($args) {
+
+    // output options found in parameters
+    $data = CLI::get_filtered_data($args);
+    $options = \WorklogCLI\WorklogFilter::get_options($data,$args);
+    print \WorklogCLI\Output::border_box($options);
+
+  }  
   public static function op_dump() {
 
     // use current settings if something was left blank

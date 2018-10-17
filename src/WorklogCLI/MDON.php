@@ -2,6 +2,30 @@
 namespace WorklogCLI;
 class MDON {
 
+  public function parse_files($filepaths) {
+
+    // array that stores file contents
+    $contents = [];
+    
+    // loop through provided file paths
+    foreach($filepaths as $filepath) {
+      
+      // confirm file exists
+      if (!is_file($filepath)) throw new \Exception("No such file: $filepath");
+
+      // get file contents
+      $contents[] = file_get_contents($filepath);
+      
+    }
+
+    // join file contents and parse
+    $contents = implode("\n\n",$contents);
+    $parsed = MDON::parse($contents);
+
+    // return parsed contents
+    return $parsed;
+
+  }
   public function parse_file($filepath) {
 
     // confirm file exists

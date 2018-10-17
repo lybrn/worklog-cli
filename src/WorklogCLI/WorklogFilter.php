@@ -182,7 +182,7 @@ class WorklogFilter {
     foreach($args as $arg) {
       if ($arg=='$') return TRUE;
     }      
-    return FALSE;
+    return null;
   }
   public static function brackets_list($data) {
     $worklog_brackets = array();
