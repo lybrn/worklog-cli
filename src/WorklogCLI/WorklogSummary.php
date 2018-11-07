@@ -2,6 +2,39 @@
 namespace WorklogCLI;
 class WorklogSummary {
 
+  public static function summary_queued($parsed,$args=array()) {
+                
+    $rows = array();
+    foreach($parsed as $item) {
+              
+      // $row = array();
+      // $row['line'] = $item['line_number'];
+      // $row['client'] = $item['client'];
+      // $row['note'] = '### '.$item['title'];
+      // $row['total'] = \WorklogCLI\Format::format_hours($item['total']);
+      // $rows[] = $row;
+
+      foreach($item['queued'] as $queued_text) {
+        $row = array();
+        $row['line'] = $item['line_number'];
+        //$row['client'] = $item['client'];
+        $row['queued'] = $queued_text .' ('.$item['client'].' / '.$item['title'].')';
+        // $row['total'] = \WorklogCLI\Format::format_hours($item['total']);
+        $rows[] = $row;
+      }
+
+      // $row = array();
+      // $row['line'] = $item['line_number'];
+      // $row['client'] = $item['client'];
+      // $row['queued'] = ' ';
+      // $row['total'] = \WorklogCLI\Format::format_hours($item['total']);
+      // $rows[] = $row;
+      
+    }
+    $rows = array_values($rows);
+    return $rows;
+    
+  }
   public static function summary_days($parsed,$args=array()) {
                 
     // info

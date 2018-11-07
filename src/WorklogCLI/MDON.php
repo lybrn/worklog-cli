@@ -167,6 +167,11 @@ class MDON {
       return 4;
     }
 
+    // - item --- this line starts with "-"
+    if (preg_match('/^\-[^\+\-]/i',$line)) {
+      return 4;
+    }
+
     // * or . item --- this line starts with "*" or "."
     if (preg_match('/^[\*\.][^\+\-\*]/i',$line)) {
       if (in_array($current_style,array('*','.'))) {
@@ -207,6 +212,11 @@ class MDON {
       return "+";
     }
 
+    // - item --- this line starts with "-"
+    if (preg_match('/^\-[^\+\-\*]/i',$line)) {
+      return "-";
+    }
+
     // * item --- this line starts with "*"
     if (preg_match('/^\*[^\+\-\*]/i',$line)) {
       return "*";
@@ -245,6 +255,11 @@ class MDON {
 
     // + item --- this line starts with "+"
     if (preg_match('/^\+[^\+\-\*]/i',$line)) {
+      return trim($line);
+    }
+    
+    // - item --- this line starts with "-"
+    if (preg_match('/^\-[^\+\-\*]/i',$line)) {
       return trim($line);
     }
 

@@ -284,12 +284,18 @@ class WorklogData {
                 }
                 continue;
               }
-
+              $queued = array();
               $output_notes = array();
               $clean_notes = array();
               $time_brackets = array();
               if (!empty($tasks['rows'])) {
                 foreach($tasks['rows'] as $notes) {
+                  if ($notes['style']=='-') {
+                    $queued_text = $notes['text'];
+                    $queued_text = WorklogData::line_clean_brackets($queued_text);
+                    $queued_text = rtrim($queued_text,'- ');
+                    if (!empty($queued_text)) $queued[] = $queued_text;
+                  }
                   if ($notes['style']!='+') continue;
                   $output_notes[] = $notes['text'];
                   $note_skip = FALSE;
@@ -388,6 +394,7 @@ class WorklogData {
               $entry['title'] = $tasktitle;
               $entry['note'] = $taskcleannote;
               $entry['notes'] = $clean_notes;
+              $entry['queued'] = $queued;
               $entry['category_info'] = $category_info[ $cleancategory ];
               $entry['client'] = $entry_category;
               $entry['multiplier'] = $multipler;

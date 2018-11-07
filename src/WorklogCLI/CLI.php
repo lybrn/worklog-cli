@@ -385,6 +385,17 @@ class CLI {
     print \WorklogCLI\Output::border_box($options);
 
   }
+  public static function op_queued($args) {
+
+    // build summary
+    $data = CLI::get_filtered_data($args);
+    $rows = \WorklogCLI\WorklogSummary::summary_queued($data,$args);
+
+    // output
+    $output .= \WorklogCLI\Output::whitespace_table($rows);
+    print \WorklogCLI\Output::border_box($output);
+
+  }  
   public static function op_markdown($args) {
 
     // build summary`
