@@ -14,13 +14,18 @@ class WorklogSummary {
       // $row['total'] = \WorklogCLI\Format::format_hours($item['total']);
       // $rows[] = $row;
 
-      foreach($item['queued'] as $queued_text) {
+      foreach($item['queued'] as $queued) {
         $row = array();
+        $row['queued'] = $queued['text']; // .' ('.$item['client'].' / '.$item['title'].')';
+        $row['client'] = @$queued['category'] ?: $item['client'];
+        $row['title'] = @$queued['title'] ?: $item['title'];
         $row['line'] = $item['line_number'];
-        //$row['client'] = $item['client'];
-        $row['queued'] = $queued_text .' ('.$item['client'].' / '.$item['title'].')';
-        // $row['total'] = \WorklogCLI\Format::format_hours($item['total']);
-        $rows[] = $row;
+        $row_key = implode('-',[
+          $queued['text'], $row['client'], $row['title']
+        ]);
+        // if no row already exists for this queud item add one
+        if (empty($rows[ $row_key ])) 
+          $rows[ $row_key ] = $row;
       }
 
       // $row = array();

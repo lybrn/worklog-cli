@@ -242,6 +242,8 @@ class WorklogData {
     $parsed = \WorklogCLI\MDON::parse_files($filepaths);
     $output = array();
     $category_info = array();
+    $all_categories = array();
+    $all_titles = array();
 
     foreach($parsed as $r => $row) {
       $day_text = WorklogData::line_clean_brackets($row['text']);
@@ -262,6 +264,7 @@ class WorklogData {
         if (is_array($day['rows'])) foreach($day['rows'] as $category) {
           $cat_line_number = $category['linenum'];
           $cleancategory = WorklogData::line_clean_brackets($category['text']);
+          $all_categories[ $cleancategory ] = $cleancategory;
           if (!empty($options['category']) && !WorklogData::time_filter_compare($category['text'],$options['category'])) {
             continue;
           }
@@ -291,10 +294,22 @@ class WorklogData {
               if (!empty($tasks['rows'])) {
                 foreach($tasks['rows'] as $notes) {
                   if ($notes['style']=='-') {
+                    $queued_brackets = WorklogData::line_get_brackets($notes['text']);
+                    $queued_brackets = WorklogData::array_explode_values('/',$queued_brackets);
+                    $queued_category = WorklogData::brackets_match_item($queued_brackets,$all_categories);
+                    $queued_titles = $queued_brackets;
+                    unset($queued_titles[ array_search($queued_category,$queued_titles)]);
+                    $queued_title = current($queued_titles);
+                    // if (!empty($queued_category)) { print_r($all_titles); die("!"); }
                     $queued_text = $notes['text'];
                     $queued_text = WorklogData::line_clean_brackets($queued_text);
                     $queued_text = rtrim($queued_text,'- ');
-                    if (!empty($queued_text)) $queued[] = $queued_text;
+                    if (!empty($queued_text)) $queued[] = [ 
+                      'text' => $queued_text,
+                      'category' => $queued_category,
+                      'title' => $queued_title,
+                      'brackets' => $queued_brackets,
+                    ];
                   }
                   if ($notes['style']!='+') continue;
                   $output_notes[] = $notes['text'];
@@ -415,6 +430,7 @@ class WorklogData {
               $entry['cat_line_number'] = $cat_line_number;
               $entry['line_number'] = $task_line_number;
 
+              $all_titles[ $tasktitle ] = $tasktitle;
 
               $timestamp_key = date('Y-m-d',$day['timestamp']);
               if (!empty($options['bracket'])) {
