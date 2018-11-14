@@ -52,21 +52,26 @@ class MDON {
     // current_style
     $current_style = null;
     $current_depth = 0;
+    $current_offset = 0;
 
     // for each line:
     foreach($lines as $i=>$line) {
       if ($depth = MDON::get_depth($lines,$i,$line,$current_style,$current_depth)) {
+        $depth_offset = MDON::get_depth_offset($lines,$i,$line,$current_style,$current_offset);
         $style = MDON::get_style($lines,$i,$line);
         $matched = MDON::get_matched($lines,$i,$line);
         $current_style = $style;
         $current_depth = $depth;
+        $current_offset = $depth_offset;
+        $text = trim($line);
+        $text = ltrim($text,'=-#+*. ');
         $rows[] = array(
-          'depth'=>$depth,
+          'depth'=>$depth + $depth_offset,
           'pos'=>count($rows),
           'style'=>$style,
           'line'=>$matched,
           'linenum'=>$i,
-          'text'=>trim($line,'+#'),
+          'text'=>$text,
         );
       }
     }
@@ -140,13 +145,37 @@ class MDON {
     return $tree;
 
   }
+  public function get_line_indent_depth($line) {
+    
+    // if this is a blank line, return 0
+    if (strlen(trim($line))==0) return 0;
+    
+    // var that will hold the numnber of spaces at the start of the line`
+    $indent_depth_in_spaces = 0;
+    // split the line into an array of individual characters
+    $characters = str_split($line);
+    
+    // loop through each characters starting from begining of the line
+    foreach($characters as $char) {
+      // if this character is a space, increase depth by 1
+      if ($char==' ') $indent_depth_in_spaces++;
+      // if this character is not a space, stop looping
+      if ($char!=' ') break;
+    }
+  
+    // return number of spaces at begining of line
+    return $indent_depth_in_spaces;
+    
+  }
   public function get_depth($lines,$i,$line,$current_style,$current_depth) {
-
+    
+    // prev line
+    $prevline = $lines[$i-1];
     // get the current line
     $line = $line;
     // get the next line
     $nextline = $lines[$i+1];
-
+    
     // h1 -- next line is "==="+
     if (preg_match('/^===+\s*$/i',$nextline)) {
       return 1;
@@ -173,10 +202,13 @@ class MDON {
     }
 
     // * or . item --- this line starts with "*" or "."
-    if (preg_match('/^[\*\.][^\+\-\*]/i',$line)) {
-      if (in_array($current_style,array('*','.'))) {
+    if (preg_match('/^[\*\.][^\+\-\*]/i',trim($line))) {
+      // if the curent style from previous line is * or . - match current depth
+      if (in_array($current_style,array('*','.','-','+'))) {
         return $current_depth;
-      } else {
+      } 
+      // if the current style from previous line is anything else (ex. ---) - increment depth
+      else {
         return $current_depth + 1;
       }
     }
@@ -185,6 +217,63 @@ class MDON {
     return FALSE;
 
   }
+  public function get_depth_offset($lines,$i,$line,$current_style,$current_offset) {
+    
+    // prev line
+    $prevline = $lines[$i-1];
+    // get the current line
+    $line = $line;
+    // get the next line
+    $nextline = $lines[$i+1];
+    
+    // get indent depth
+    $previndent = MDON::get_line_indent_depth($prevline);
+    $indent = MDON::get_line_indent_depth($line);
+    $nextindent = MDON::get_line_indent_depth($nextline);
+    
+    // if indent is 0 return 0
+    if ($indent == 0) return 0;
+    
+    // depth offset, added to depth before returning;
+    $additional_offset = 0;
+    // if the indent is larger than that of the last line, set offset to 1.
+    if ($indent > $previndent) $additional_offset = 1;
+    if ($indent < $previndent) $additional_offset = -1;
+    
+    // h1 -- next line is "==="+
+    if (preg_match('/^===+\s*$/i',$nextline)) {
+      return 0;
+    }
+
+    // h2 -- next line is "---"+
+    if (preg_match('/^---+\s*$/i',$nextline)) {
+      return 0;
+    }
+
+    // h3 -- this line starts with "###"
+    if (preg_match('/^###[^#]/i',$line)) {
+      return 0;
+    }
+
+    // + item --- this line starts with "+"
+    if (preg_match('/^\+[^\+\-]/i',$line)) {
+      return 0;
+    }
+
+    // - item --- this line starts with "-"
+    if (preg_match('/^\-[^\+\-]/i',$line)) {
+      return 0;
+    }
+
+    // * or . item --- this line starts with "*" or "."
+    if (preg_match('/^[\*\.][^\+\-\*]/i',trim($line))) {
+      return max(0,$current_offset + $additional_offset);
+    }
+
+    // everything else -- no depth or meaning
+    return FALSE;
+
+  }  
   public function get_style($lines,$i,$line) {
 
     // get the current line
@@ -218,12 +307,12 @@ class MDON {
     }
 
     // * item --- this line starts with "*"
-    if (preg_match('/^\*[^\+\-\*]/i',$line)) {
+    if (preg_match('/^\*[^\+\-\*]/i',trim($line))) {
       return "*";
     }
 
     // . item --- this line starts with "."
-    if (preg_match('/^\.[^\+\-\*]/i',$line)) {
+    if (preg_match('/^\.[^\+\-\*]/i',trim($line))) {
       return ".";
     }
 
@@ -264,12 +353,12 @@ class MDON {
     }
 
     // * item --- this line starts with "*"
-    if (preg_match('/^\*[^\+\-\*]/i',$line)) {
+    if (preg_match('/^\*[^\+\-\*]/i',trim($line))) {
       return trim($line);
     }
 
     // . item --- this line starts with "."
-    if (preg_match('/^\.[^\+\-\*\.]/i',$line)) {
+    if (preg_match('/^\.[^\+\-\*\.]/i',trim($line))) {
       return trim($line);
     }
 
