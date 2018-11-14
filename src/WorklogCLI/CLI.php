@@ -22,6 +22,34 @@ class CLI {
     CLI::op_usage($args);
 
   }
+  public static function get_dump($args) {
+
+    // use current settings if something was left blank
+    $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
+    $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
+    $worklog_file_paths = []; 
+
+    // alt worklog paths
+    foreach($args as $arg) {
+      $alt_file_path = "$worklog_dir/$arg";
+      if (is_file($alt_file_path)) {
+        $worklog_file_paths[] = $alt_file_path;
+      }
+    }
+
+    // if no worklog provided in args, use default worklog
+    if (empty($worklog_file_paths)) {
+      $worklog_default = $config['worklog']['worklog_default'];
+      $worklog_file_paths[] = "$worklog_dir/$worklog_default";
+    }
+
+    // parse and filter worklog
+    $dump = \WorklogCLI\MDON::parse_files($worklog_file_paths);
+
+    // return filtered
+    return $dump;
+
+  }
   public static function get_filtered_data($args) {
 
     // use current settings if something was left blank
@@ -51,6 +79,48 @@ class CLI {
     return $filtered;
 
   }
+  public static function get_note_data($args) {
+
+    // use current settings if something was left blank
+    $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
+    $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
+    $worklog_file_paths = []; 
+
+    // alt worklog paths
+    foreach($args as $arg) {
+      $alt_file_path = "$worklog_dir/$arg";
+      if (is_file($alt_file_path)) {
+        $worklog_file_paths[] = $alt_file_path;
+      }
+    }
+
+    // if no worklog provided in args, use default worklog
+    if (empty($worklog_file_paths)) {
+      $worklog_default = $config['worklog']['worklog_default'];
+      $worklog_file_paths[] = "$worklog_dir/$worklog_default";
+    }
+
+    // parse and filter worklog
+    $notedata = \WorklogCLI\WorklogData::get_note_data($worklog_file_paths);
+
+    // normalized 
+    $normalized = [];
+    foreach($notedata as $k=>$v) {
+      $k_normal = \WorklogCLI\Format::normalize_key($k);
+      $normalized[$k_normal] = $k;
+    }
+    // return data
+    $return = [];
+    foreach($args as $arg) {
+      $arg_normal = \WorklogCLI\Format::normalize_key($arg);
+      if (!empty($normalized[$arg_normal]))
+        $return[ $normalized[$arg_normal] ] = $notedata[ $normalized[$arg_normal] ];
+      
+    }
+    // return filtered
+    return $return;
+
+  }  
   public static function op_usage($args) {
 
     // print usage info
@@ -101,17 +171,11 @@ class CLI {
     print \WorklogCLI\Output::border_box($options);
 
   }  
-  public static function op_dump() {
+  public static function op_dump($args) {
 
-    // use current settings if something was left blank
-    $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
-    $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
-    $worklog_default = $config['worklog']['worklog_default'];
-    $worklog_file_path = "$worklog_dir/$worklog_default";
+    $dump = CLI::get_dump($args);
 
-    $parsed = \WorklogCLI\MDON::parse_file($worklog_file_path);
-
-    print \WorklogCLI\Output::formatted_json($parsed);
+    print \WorklogCLI\Output::formatted_json($dump);
 
   }
 
@@ -438,6 +502,16 @@ class CLI {
     print \WorklogCLI\Output::border_box($options);
 
   }
+  public static function op_notedata($args) {
+
+    // get data
+    $data = CLI::get_note_data($args);
+
+    // output data
+    $output = Output::formatted_stardot($data);
+    print \WorklogCLI\Output::border_box($output);
+
+  }  
   public static function op_invoiceyaml($args) {
 
     // build summary`

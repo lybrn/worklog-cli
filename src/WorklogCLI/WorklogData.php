@@ -237,6 +237,53 @@ class WorklogData {
     return $rows;
 
   }
+  public static function get_note_data($filepaths,$options=array()) {
+    
+    $parsed = \WorklogCLI\MDON::parse_files($filepaths);
+    $notedata = array();
+    
+    foreach($parsed as $day) {
+      if (is_array($day['rows'])) 
+      foreach($day['rows'] as $category) {
+        if (!empty($category['rows']))
+        foreach($category['rows'] as $tasks) {
+          if (!empty($tasks['rows']))
+          foreach($tasks['rows'] as $notes) {
+                
+            if ($notes['style']=='*' || $notes['style']=='.') {
+              $pair = explode(':',$notes['text'],2);
+              $key = trim($pair[0]);
+              if (!empty($notes['rows'])) {
+                $notedata[ $key ] = [];
+                foreach($notes['rows'] as  $noterow) {
+                  $subpair = explode(':',$noterow['text'],2);
+                  $subkey = trim($subpair[0]);
+                  $subvalue = trim($subpair[1]);
+                  if (!empty($subvalue))
+                    $notedata[ $key ][ $subkey ] = $subvalue;
+                  if (!empty($noterow['rows'])) {
+                    $notedata[ $key ][ $subkey ] = [];
+                    foreach($noterow['rows'] as $subnoterow) {
+                      $subsubpair = explode(':',$subnoterow['text'],2);
+                      $subsubkey = trim($subsubpair[0]);
+                      $subsubvalue = trim($subsubpair[1]);
+                      if (!empty($subsubvalue))
+                        $notedata[ $key ][ $subkey ][ $subsubkey ] = $subsubvalue;                    
+                      //$notedata[ $subkey ][ $subsubkey ] = $subsubvalue;                    
+                    }    
+                  }
+                }
+                if (empty($notedata[ $key ])) unset($notedata[ $key ]);
+              }
+            }
+          }
+        }
+      }
+    }
+    ksort($notedata);
+    return $notedata;        
+                        
+  }  
   public static function get_data($filepaths,$options=array()) {
 
     $parsed = \WorklogCLI\MDON::parse_files($filepaths);
