@@ -45,6 +45,13 @@ class Output {
     return $output;
     
   }
+  public function formatted_stardot($data) {
+    
+    // turn array into rendered stardot format
+    $output = \WorklogCLI\StarDot::render($data);
+    return $output;
+    
+  }  
   public function formatted_yaml($data) {
     
     // turn array into pretty printed json
