@@ -254,7 +254,8 @@ class WorklogData {
               $pair = explode(':',$notes['text'],2);
               $key = trim($pair[0]);
               if (!empty($notes['rows'])) {
-                $notedata[ $key ] = [];
+                if (!is_array($notedata[ $key ]))
+                  $notedata[ $key ] = [];
                 foreach($notes['rows'] as  $noterow) {
                   $subpair = explode(':',$noterow['text'],2);
                   $subkey = trim($subpair[0]);
@@ -262,7 +263,8 @@ class WorklogData {
                   if (!empty($subvalue))
                     $notedata[ $key ][ $subkey ] = $subvalue;
                   if (!empty($noterow['rows'])) {
-                    $notedata[ $key ][ $subkey ] = [];
+                    if (!is_array($notedata[ $key ][ $subkey ]))
+                      $notedata[ $key ][ $subkey ] = [];
                     foreach($noterow['rows'] as $subnoterow) {
                       $subsubpair = explode(':',$subnoterow['text'],2);
                       $subsubkey = trim($subsubpair[0]);
