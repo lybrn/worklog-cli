@@ -60,24 +60,13 @@ class Output {
     
   }
   public function border_box($content) {
-    
-    // if content is an array, implode keys and values into a content string
-    if (is_array($content)) {
-      foreach($content as $k=>$v) {
-        if (is_array($v))
-          $v = implode(', ',$v);
-        if (!is_numeric($k))
-          $content[$k] = "$k: $v";
-      }
-      $content = implode("\n",$content);
-    }
-    
-    // remove white space from top and bottom of content
-    $content = trim($content);
+
+    // render output 
+    $content = trim( Output::render($content) );
     
     // break content into lines
     $lines = explode("\n",$content);
-    
+
     // find length of longest line
     $longest = 0;
     foreach($lines as $line) {
@@ -100,6 +89,24 @@ class Output {
     
     // return output string 
     return $output;
+  }
+  public function render($content) {
+    
+    // if content is an array, implode keys and values into a content string
+    if (is_array($content)) {
+      foreach($content as $k=>$v) {
+        if (is_array($v))
+          $v = implode(', ',$v);
+        if (!is_numeric($k))
+          $content[$k] = "$k: $v";
+      }
+      $content = implode("\n",$content);
+    }
+    
+    // remove white space from top and bottom of content
+    $content = trim($content);
+    
+    return $content."\n";    
   }
   public function whitespace_table($rows) {
 

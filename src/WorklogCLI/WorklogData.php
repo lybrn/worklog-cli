@@ -6,8 +6,8 @@ class WorklogData {
     $entries = array();
     foreach($parsed as $k=>$item) {
       $rate = $item['rate'];
-      $hours = \WorklogCLI\Format::format_hours($item['total']);
-      $total = \WorklogCLI\Format::format_cost($hours * $rate);
+      $hours = Format::format_hours($item['total']);
+      $total = Format::format_cost($hours * $rate);
       $title = $item['title'];
       $task = $item['task'];
       $notes = implode(". ",$item['notes']).'.';
@@ -29,7 +29,7 @@ class WorklogData {
     return array_values($entries);
   }
   public static function get_timeline_data($parsed,$args=array()) {
-    $range = \WorklogCLI\WorklogFilter::args_get_date_range($args);
+    $range = WorklogFilter::args_get_date_range($args);
     //$rangediff = (strtotime($range[1]) - strtotime($range[0])) + 1;
     $fromdate = new \DateTime($range[1]);
     $todate = new \DateTime($range[0]);
@@ -41,17 +41,17 @@ class WorklogData {
     $timeline = array(
       'hours'=>0.0,
       'days'=>$days,
-      'weeks'=>\WorklogCLI\Format::format_hours($weeks),
+      'weeks'=>Format::format_hours($weeks),
       'hperday'=>0.0,
       'hperweek'=>0.0,
     );
     foreach($parsed as $item) {
-      $hours = \WorklogCLI\Format::format_hours($item['total']);
+      $hours = Format::format_hours($item['total']);
       $timeline['hours'] += $hours;
     }
-    $timeline['hours'] = \WorklogCLI\Format::format_hours( $timeline['hours'] );
-    $timeline['hperday'] = \WorklogCLI\Format::format_hours( $timeline['hours'] / $days );
-    $timeline['hperweek'] = \WorklogCLI\Format::format_hours( $timeline['hours'] / $weeks );
+    $timeline['hours'] = Format::format_hours( $timeline['hours'] );
+    $timeline['hperday'] = Format::format_hours( $timeline['hours'] / $days );
+    $timeline['hperweek'] = Format::format_hours( $timeline['hours'] / $weeks );
     return $timeline;
   }
   public static function get_pricing_data($parsed) {
@@ -64,29 +64,29 @@ class WorklogData {
     );
 
     $firstitem = current($parsed);
-    $clientkey = \WorklogCLI\Format::normalize_key( $firstitem['client'] );
+    $clientkey = Format::normalize_key( $firstitem['client'] );
     $rate = (float) trim($clients[ $clientkey ]['rate'],'$');
     $taxpercent = (float) trim($clients[ $clientkey ]['taxpercent'],'%') / 100.0;
 
     foreach($parsed as $item) {
       $hours = $item['total'];
-      $pricing['hours'] += \WorklogCLI\Format::format_hours( $hours );
+      $pricing['hours'] += Format::format_hours( $hours );
     }
     $pricing['hours'] = $pricing['hours'];
-    $pricing['subtotal'] = \WorklogCLI\Format::format_cost( $pricing['hours'] * $rate );
-    $pricing['tax'] = \WorklogCLI\Format::format_cost( $pricing['subtotal'] * $taxpercent );
-    $pricing['total'] = \WorklogCLI\Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
+    $pricing['subtotal'] = Format::format_cost( $pricing['hours'] * $rate );
+    $pricing['tax'] = Format::format_cost( $pricing['subtotal'] * $taxpercent );
+    $pricing['total'] = Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
 
-    $pricing['subtotal'] = \WorklogCLI\Format::format_cost( $pricing['subtotal'] , array('comma'=>TRUE) );
-    $pricing['tax'] = \WorklogCLI\Format::format_cost( $pricing['tax'] , array('comma'=>TRUE) );
-    $pricing['total'] = \WorklogCLI\Format::format_cost( $pricing['total'] , array('comma'=>TRUE) );
+    $pricing['subtotal'] = Format::format_cost( $pricing['subtotal'] , array('comma'=>TRUE) );
+    $pricing['tax'] = Format::format_cost( $pricing['tax'] , array('comma'=>TRUE) );
+    $pricing['total'] = Format::format_cost( $pricing['total'] , array('comma'=>TRUE) );
 
     return $pricing;
   }
   public static function get_clients_data($parsed) {
     $clients = array();
     foreach($parsed as $item) {
-      $clientkey = \WorklogCLI\Format::normalize_key( $item['client'] );
+      $clientkey = Format::normalize_key( $item['client'] );
       $clients[ $clientkey ] = array(
         'key' => $clientkey,
         'name' => $item['client'],
@@ -95,7 +95,7 @@ class WorklogData {
         'address' => $item['category_info']['clientaddress'],
         'contactname' => $item['category_info']['clientcontactname'],
         'contactemail' => $item['category_info']['clientcontactemail'],
-        'rate' => \WorklogCLI\Format::format_cost( trim($item['category_info']['clientrate'],'$') ),
+        'rate' => Format::format_cost( trim($item['category_info']['clientrate'],'$') ),
         'taxpercent' => $item['category_info']['clienttaxpercent'],
         'taxname' => $item['category_info']['clienttaxname'],
         //'details' => $item['category_info'],
@@ -103,10 +103,24 @@ class WorklogData {
     }
     return $clients;
   }
+  public static function get_worker_data($parsed,$notedata,$args) {
+    
+    foreach(CLI::args() as $arg) {
+      $key = Format::normalize_key( "Worker-".$arg );
+      $worker_data = CLI::get_note_data($key);
+      if (!empty($worker_data)) {
+        $pairs = current($worker_data);
+        $pairs = Format::normalize_array_keys($pairs);
+        return $pairs;
+        
+      }
+    }
+
+  }  
   public static function get_invoices_data($parsed) {
     $invoices = array();
     foreach($parsed as $item) {
-      $clientkey = \WorklogCLI\Format::normalize_key( $item['client'] );
+      $clientkey = Format::normalize_key( $item['client'] );
       $invoices[ $clientkey ] = array(
         'key' => $clientkey,
         'number' => $item['category_info']['invoicenumber'],
@@ -122,24 +136,24 @@ class WorklogData {
     $projects = array();
     // projects
     foreach($parsed as $item) {
-      $projectkey = \WorklogCLI\Format::normalize_key( $item['project'] );
+      $projectkey = Format::normalize_key( $item['project'] );
       $projects[$projectkey] = array(
         'name' => $item['project'],
         'key' => $projectkey,
-        'hours' => \WorklogCLI\Format::format_hours(0),
+        'hours' => Format::format_hours(0),
       );
     }
     // entries
     foreach($parsed as $item) {
-      $projectkey = \WorklogCLI\Format::normalize_key( $item['project'] );
+      $projectkey = Format::normalize_key( $item['project'] );
       $projects[$projectkey]['hours'] = (float) $projects[$projectkey]['hours'] + (float) $item['total'];
-      $projects[$projectkey]['hours'] = \WorklogCLI\Format::format_hours($projects[$projectkey]['hours']);
+      $projects[$projectkey]['hours'] = Format::format_hours($projects[$projectkey]['hours']);
     }
     // sort
     $sorted = array();
     foreach($projects as $project) {
-      $project['hours'] = \WorklogCLI\Format::format_hours($project['hours']);
-      $sortkey = \WorklogCLI\Format::normalize_key(implode('-',array(
+      $project['hours'] = Format::format_hours($project['hours']);
+      $sortkey = Format::normalize_key(implode('-',array(
         $project['hours'],
         $project['name'],
       )));
@@ -155,7 +169,7 @@ class WorklogData {
     $tasks = array();
     // tasks
     foreach($parsed as $item) {
-      $taskkey = \WorklogCLI\Format::normalize_key( $item['project'].'-'.$item['title'] );
+      $taskkey = Format::normalize_key( $item['project'].'-'.$item['title'] );
       $tasks[ $taskkey ] = array(
         'title' => $item['title'],
         'project' => $item['project'],
@@ -166,16 +180,16 @@ class WorklogData {
     }
     // hours and status
     foreach($parsed as $item) {
-      $taskkey = \WorklogCLI\Format::normalize_key( $item['project'].'-'.$item['title'] );
+      $taskkey = Format::normalize_key( $item['project'].'-'.$item['title'] );
       $tasks[ $taskkey ]['status'] = $item['status'];
-      $tasks[ $taskkey ]['hours'] += \WorklogCLI\Format::format_hours($item['total']);
+      $tasks[ $taskkey ]['hours'] += Format::format_hours($item['total']);
       $tasks[ $taskkey ]['sittings'] += 1;
     }
     // sort
     $sorted = array();
     foreach($tasks as $task) {
-      $task['hours'] = \WorklogCLI\Format::format_hours( $task['hours'] );
-      $sortkey = \WorklogCLI\Format::normalize_key(implode('-',array(
+      $task['hours'] = Format::format_hours( $task['hours'] );
+      $sortkey = Format::normalize_key(implode('-',array(
         $task['hours'],
         $task['title'],
       )));
@@ -194,12 +208,12 @@ class WorklogData {
     $tasks = WorklogData::get_tasks_data($parsed);
     // projects
     foreach($projects as $project) {
-      $projectkey = \WorklogCLI\Format::normalize_key($project['name']);
+      $projectkey = Format::normalize_key($project['name']);
       $grouped_data[ $projectkey ] = $project;
     }
     // tasks
     foreach($tasks as $task) {
-      $projectkey = \WorklogCLI\Format::normalize_key($task['project']);
+      $projectkey = Format::normalize_key($task['project']);
       $grouped_data[ $projectkey ]['tasks'][] = $task;
     }
     return array_values($grouped_data);
@@ -208,7 +222,7 @@ class WorklogData {
 
     $worklog_categories = array();
     foreach($data as $data=>$item) {
-      $key = \WorklogCLI\Format::normalize_key($item['client']);
+      $key = Format::normalize_key($item['client']);
       $cat = array();
       $cat['key'] = $key;
       $cat['name'] = $item['client'];
@@ -239,7 +253,7 @@ class WorklogData {
   }
   public static function get_note_data($filepaths,$options=array()) {
     
-    $parsed = \WorklogCLI\MDON::parse_files($filepaths);
+    $parsed = MDON::parse_files($filepaths);
     $notedata = array();
     
     foreach($parsed as $day) {
@@ -288,7 +302,7 @@ class WorklogData {
   }  
   public static function get_data($filepaths,$options=array()) {
 
-    $parsed = \WorklogCLI\MDON::parse_files($filepaths);
+    $parsed = MDON::parse_files($filepaths);
     $output = array();
     $category_info = array();
     $all_categories = array();
@@ -324,7 +338,7 @@ class WorklogData {
               if ($tasks['style']=='*') {
                 $info = explode(':',$tasks['text'],2);
                 if (count($info)!=2) continue;
-                $key = \WorklogCLI\Format::normalize_key( trim($info[0],'*') );
+                $key = Format::normalize_key( trim($info[0],'*') );
                 $value = trim($info[1]);
                 $category_info[ $cleancategory ][ $key ] = ($value!='') ? $value : array();
                 $lastinfo = &$category_info[ $cleancategory ][ $key ];
@@ -429,8 +443,8 @@ class WorklogData {
               $free_brackets = $all_brackets;
 
               $length = $highest - $lowest + $offset;
-              $hours = \WorklogCLI\Format::format_hours( round($length / "60.0" / "60.0",'2') );
-              $total = \WorklogCLI\Format::format_hours( $hours * $multipler );
+              $hours = Format::format_hours( round($length / "60.0" / "60.0",'2') );
+              $total = Format::format_hours( $hours * $multipler );
               $tasktitle = WorklogData::line_clean_brackets($tasktitle);
               $tasknote = WorklogData::line_clean_brackets($tasknote);
               $taskline = WorklogData::line_clean_brackets($taskline);
@@ -507,8 +521,8 @@ class WorklogData {
     $match = null;
     foreach($brackets as $bracket) {
       foreach($items as $item) {
-        $bracketkey = \WorklogCLI\Format::normalize_key($bracket);
-        $itemkey = \WorklogCLI\Format::normalize_key($item);
+        $bracketkey = Format::normalize_key($bracket);
+        $itemkey = Format::normalize_key($item);
         if ($bracketkey == $itemkey) {
           $match = $item;
           break;
@@ -521,8 +535,8 @@ class WorklogData {
     $brackets_without_items = $brackets;
     foreach($brackets as $b=>$bracket) {
       foreach($items as $item) {
-        $bracketkey = \WorklogCLI\Format::normalize_key($bracket);
-        $itemkey = \WorklogCLI\Format::normalize_key($item);
+        $bracketkey = Format::normalize_key($bracket);
+        $itemkey = Format::normalize_key($item);
         if ($bracketkey == $itemkey) {
           unset($brackets_without_items[$b]);
         }

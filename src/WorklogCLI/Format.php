@@ -8,6 +8,14 @@ class Format {
     $normalized = strtolower($normalized);
     return $normalized;
   }
+  public static function normalize_array_keys($array) {
+    $array_normalized = [];
+    foreach($array as $k=>$v) {
+      $k_normalized = Format::normalize_key($k);
+      $array_normalized[ $k_normalized ] = $v;
+    }
+    return $array_normalized;
+  }
   public static function format_hours($hours) {
     $hours = number_format($hours,2);
     return $hours;
