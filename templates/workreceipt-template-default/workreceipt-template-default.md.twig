@@ -1,0 +1,64 @@
+# Work Receipt: {{ invoice.period }} <br /> Work done by {{ worker.fullname }} - {{ client.shortname }}
+
+---
+
+| Receipt | Details           
+|-|
+| Issued by      | Lindsay Bernath
+| Receipt number | {{ invoice.number }}  
+| Receipt date   | {{ invoice.date }}  
+| Receipt amount   | CA${{ pricing.total }}  
+
+---
+
+**Lindsay Bernath (Issuer)**  
+34-216 Metcalfe St, Ottawa, Ontario, K2P 1R1   
+lindsay.bernath@gmail.com, 613 325 5156  
+
+**{{ worker.fullname }} (Worker)**  
+{{ worker.address }}  
+{{ worker.email }}, {{ worker.phone }}  
+
+---
+
+> {{ invoice.period }} work done by {{ worker.fullname }}  
+> **{{ pricing.hours }} hours**  
+> *Average: {{ timeline.hperweek }} hours weekly — {{ timeline.weeks }} weeks ({{ timeline.days }} days)*  
+
+---
+
+{% for project in projects %}
+### {{ project.name }} work - {{ project.hours }} hours
+
+| Task                                               | Status               | Hours
+|:---------------------------------------------------|:---------------------|:------------------|
+{% for task in project.tasks %}
+| {{ task.title                                   }} | {{ task.status    }} | {{ task.hours }}
+{% endfor %}
+
+{% endfor %}
+
+---
+
+> | Hours | Rate | Subtotal | Tax Rate | Taxes | Total
+> |-
+> | {{ pricing.hours }} hours | CA${{ client.rate }} | CA${{ pricing.subtotal }} | {{ worker.taxname }} *#{{ worker.gstaccount }}* | CA${{ pricing.tax }} | CA${{ pricing.total }}
+  
+---  
+
+> **CA${{ pricing.total }}**
+>                                                            
+> Payable by {{ worker.payableby }}   
+> {{ worker.fullname }} - {{ worker.phone }} - {{ worker.email }}
+
+---  
+
+## Details
+
+---
+
+| Date             | Time Entry Notes             | Hours             | Rate             | Line Total
+|:-----------------|:-----------------------------|:------------------|:-----------------|:------------------
+{% for entry in entries %}
+| {{ entry.date }} |  {{ entry.title }} ({{ entry.project }}, {{ entry.task }}): {{ entry.notes }} | {{ entry.hours }} | {{ entry.rate }} | {{ entry.total }}
+{% endfor %}
