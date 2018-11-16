@@ -554,13 +554,38 @@ class CLI {
     print \WorklogCLI\Output::border_box($options);
 
   }
+  public static function get_output_template($args) {
+    
+    // use current settings if something was left blank
+    $config = \WorklogCLI\JsonConfig::config_get('worklog-config');
+    $template_dir = CLI::root().'/templates';
+    
+    $template_paths = []; 
+
+    // alt template paths
+    foreach($args as $arg) {
+      $alt_template_path = "$template_dir/$arg";
+      if (is_dir($alt_template_path)) {
+        $template_paths[] = $arg;
+      }
+    }
+
+    // if no template provided in args, use default worklog
+    if (empty($template_paths)) {
+      $template_default = $config['worklog']['invoice_template_name'];
+      $template_paths[] = $template_default;
+    }
+    
+    return current($template_paths);
+
+  }
   public static function op_invoicehtml($args) {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data($args);
     $yaml_data = \WorklogCLI\WorklogSummary::summary_invoice($data,$args);
     $saved = \WorklogCLI\JsonConfig::config_get('worklog-config');
-    $invoice_template_name = $saved['worklog']['invoice_template_name'];
+    $invoice_template_name = CLI::get_output_template($args); 
 
     // markdown twig template
     $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md.twig';
