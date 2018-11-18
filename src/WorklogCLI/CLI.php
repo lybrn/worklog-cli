@@ -116,17 +116,26 @@ class CLI {
     return $filtered;
 
   }
-  public static function get_note_data($keys) {
-
-    if (empty($keys)) return [];
-    if (!is_array($keys)) $keys = [ $keys ];
+  public static function get_note_data() {
     
     // get worklog file paths
     $worklog_file_paths = CLI::get_worklog_filepaths();
 
     // parse and filter worklog
     $notedata = WorklogData::get_note_data($worklog_file_paths);
+    
+    // return
+    return $notedata;
+    
+  }
+  public static function get_note_data_by_keys($keys) {
+    
+    if (empty($keys)) return [];
+    if (!is_array($keys)) $keys = [ $keys ];
 
+    // note data
+    $notedata = CLI::get_note_data();
+    
     // normalized 
     $normalized = [];
     foreach($notedata as $k=>$v) {
@@ -142,6 +151,7 @@ class CLI {
         $return[ $normalized[$key_normal] ] = $notedata[ $normalized[$key_normal] ];
       
     }
+    
     // return filtered
     return $return;
 
@@ -193,7 +203,7 @@ class CLI {
     $dump = CLI::get_dump();
 
     // output data
-    $output = Output::formatted_json($data);
+    $output = Output::formatted_json($dump);
     print $output;
 
   }
@@ -496,11 +506,22 @@ class CLI {
     $output = Output::whitespace_table($rows);
     CLI::out( $output );
   }
+  public static function op_notedatadump() {
+
+    // get data
+    $keys = CLI::$args;
+    $data = CLI::get_note_data();
+
+    // output data
+    $output = Output::formatted_json($data);
+    print $output;
+
+  }    
   public static function op_notedata() {
 
     // get data
     $keys = CLI::$args;
-    $data = CLI::get_note_data($keys);
+    $data = CLI::get_note_data_by_keys($keys);
 
     // output data
     $output = Output::formatted_stardot($data);
