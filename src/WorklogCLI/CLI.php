@@ -44,50 +44,57 @@ class CLI {
       Output::border_box($output);
   } 
   public static function get_worklog_filepaths() {
-            
-    // use current settings if something was left blank
-    $config = JsonConfig::config_get('worklog-config');
-    $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
-    $worklog_file_paths = []; 
-
-    // alt worklog paths
-    foreach(CLI::$args as $arg) {
-      $alt_file_path = "$worklog_dir/$arg";
-      if (is_file($alt_file_path)) {
-        $worklog_file_paths[] = $alt_file_path;
-      }
-    }
-
-    // if no worklog provided in args, use default worklog
-    if (empty($worklog_file_paths)) {
-      $worklog_default = $config['worklog']['worklog_default'];
-      $worklog_file_paths[] = "$worklog_dir/$worklog_default";
-    }
     
+    static $worklog_file_paths = null;
+    if (is_null($worklog_file_paths)) {
+      
+      // use current settings if something was left blank
+      $config = JsonConfig::config_get('worklog-config');
+      $worklog_dir = rtrim($config['worklog']['worklog_dir'],'/');
+      $worklog_file_paths = []; 
+
+      // alt worklog paths
+      foreach(CLI::$args as $arg) {
+        $alt_file_path = "$worklog_dir/$arg";
+        if (is_file($alt_file_path)) {
+          $worklog_file_paths[] = $alt_file_path;
+        }
+      }
+
+      // if no worklog provided in args, use default worklog
+      if (empty($worklog_file_paths)) {
+        $worklog_default = $config['worklog']['worklog_default'];
+        $worklog_file_paths[] = "$worklog_dir/$worklog_default";
+      }
+      
+    }
     return $worklog_file_paths;
+    
   }
   public static function get_template_paths() {
     
-    // use current settings if something was left blank
-    $config = JsonConfig::config_get('worklog-config');
-    $template_dir = CLI::root().'/templates';
-    
-    $template_paths = []; 
+    static $template_paths = null;
+    if (is_null($template_paths)) {
 
-    // alt template paths
-    foreach(CLI::$args as $arg) {
-      $alt_template_path = "$template_dir/$arg";
-      if (is_dir($alt_template_path)) {
-        $template_paths[] = $arg;
+      // use current settings if something was left blank
+      $config = JsonConfig::config_get('worklog-config');
+      $template_dir = CLI::root().'/templates';
+    
+      // alt template paths
+      foreach(CLI::$args as $arg) {
+        $alt_template_path = "$template_dir/$arg";
+        if (is_dir($alt_template_path)) {
+          $template_paths[] = $arg;
+        }
       }
-    }
 
-    // if no template provided in args, use default worklog
-    if (empty($template_paths)) {
-      $template_default = $config['worklog']['invoice_template_name'];
-      $template_paths[] = $template_default;
+      // if no template provided in args, use default worklog
+      if (empty($template_paths)) {
+        $template_default = $config['worklog']['invoice_template_name'];
+        $template_paths[] = $template_default;
+      }
+      
     }
-    
     return $template_paths;
 
   }  
@@ -103,57 +110,78 @@ class CLI {
     return $dump;
 
   }
-  public static function get_filtered_data() {
+  public static function get_filtered_data($args=[]) {
 
-    // get worklog file paths
-    $worklog_file_paths = CLI::get_worklog_filepaths();
+    static $cached = [];
+    $args = @$args ?: CLI::$args;
+    $args_key = md5(print_r($args,TRUE));
+    if (empty($cached[$args_key])) {
+      
+      // get worklog file paths
+      $worklog_file_paths = CLI::get_worklog_filepaths();
 
-    // parse and filter worklog
-    $parsed = WorklogData::get_data($worklog_file_paths);
-    $filtered = WorklogFilter::filter_parsed($parsed,CLI::$args);
+      // parse and filter worklog
+      $parsed = WorklogData::get_data($worklog_file_paths);
+      $filtered = WorklogFilter::filter_parsed($parsed,$args);
 
+      $cached[$args_key] = $filtered;
+      
+    }
     // return filtered
-    return $filtered;
+    return $cached[$args_key];
 
   }
   public static function get_note_data() {
     
-    // get worklog file paths
-    $worklog_file_paths = CLI::get_worklog_filepaths();
+    static $notedata = null;
+    if (is_null($notedata)) {
+      
+      // get worklog file paths
+      $worklog_file_paths = CLI::get_worklog_filepaths();
 
-    // parse and filter worklog
-    $notedata = WorklogData::get_note_data($worklog_file_paths);
+      // parse and filter worklog
+      $notedata = WorklogData::get_note_data($worklog_file_paths);
     
+    }
     // return
     return $notedata;
     
   }
   public static function get_note_data_by_keys($keys) {
     
-    if (empty($keys)) return [];
-    if (!is_array($keys)) $keys = [ $keys ];
-
     // note data
     $notedata = CLI::get_note_data();
-    
-    // normalized 
-    $normalized = [];
-    foreach($notedata as $k=>$v) {
-      $k_normal = Format::normalize_key($k);
-      $normalized[$k_normal] = $k;
-    }
-    
-    // return data
-    $return = [];
-    foreach($keys as $key) {
-      $key_normal = Format::normalize_key($key);
-      if (!empty($normalized[$key_normal]))
-        $return[ $normalized[$key_normal] ] = $notedata[ $normalized[$key_normal] ];
+
+    // normalized
+    static $normalized = [];
+    if (empty($normalized)) {        
+      // normalized 
+      foreach($notedata as $k=>$v) {
+        $k_normal = Format::normalize_key($k);
+        $normalized[$k_normal] = $k;
+      }
+    } 
+
+    static $cached = [];
+    $args_key = md5(print_r(func_get_args(),TRUE));
+    if (empty($cached[$args_key])) {
       
-    }
+      if (empty($keys)) return [];
+      if (!is_array($keys)) $keys = [ $keys ];
+            
+      // return data
+      $return = [];
+      foreach($keys as $key) {
+        $key_normal = Format::normalize_key($key);
+        if (!empty($normalized[$key_normal]))
+          $return[ $normalized[$key_normal] ] = $notedata[ $normalized[$key_normal] ];
+        
+      }
     
+      $cached[$args_key] = $return;
+    }
     // return filtered
-    return $return;
+    return $cached[$args_key];
 
   }  
   public static function op_usage() {
@@ -340,7 +368,7 @@ class CLI {
   }
   public static function op_review() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $options = WorklogFilter::get_options($data,CLI::$args);
     $fromdate = strtotime(current($options['range']));
@@ -367,7 +395,7 @@ class CLI {
   }
   public static function op_review2() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $options = WorklogFilter::get_options($data,CLI::$args);
     $fromdate = current($options['range']);
@@ -403,7 +431,7 @@ class CLI {
   }
   public static function op_billing() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $options = WorklogFilter::get_options($data,CLI::$args);
     $fromdate = strtotime(current($options['range']));
@@ -432,7 +460,7 @@ class CLI {
   }
   public static function op_times() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_times($data,CLI::$args);
 
@@ -443,7 +471,7 @@ class CLI {
   }
   public static function op_brackets() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_brackets($data,CLI::$args);
 
@@ -454,7 +482,7 @@ class CLI {
   }
   public static function op_notes() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_notes($data,CLI::$args);
 
@@ -476,7 +504,7 @@ class CLI {
   }  
   public static function op_markdown() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_markdown($data,CLI::$args);
 
@@ -487,7 +515,7 @@ class CLI {
   }
   public static function op_render() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_markdown($data,CLI::$args);
 
@@ -498,7 +526,7 @@ class CLI {
   }
   public static function op_catinfo() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_category_info($data,CLI::$args);
 
@@ -530,7 +558,7 @@ class CLI {
   }  
   public static function op_invoiceyaml() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_invoice($data,CLI::$args);
 
@@ -541,7 +569,7 @@ class CLI {
   }
   public static function op_invoice() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $yaml_data = WorklogSummary::summary_invoice($data,CLI::$args);
 
@@ -553,9 +581,20 @@ class CLI {
     print Twig::process($twig,$vars)."\n";
 
   }
+  public static function op_invoice2() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $yaml_data = WorklogSummary::summary_invoice2($data,CLI::$args);
+
+    // output
+    $output = Output::formatted_yaml($yaml_data);
+    CLI::out( $output );
+
+  }
   public static function op_logexport() {
     
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_logexport($data,CLI::$args);
 
@@ -564,6 +603,34 @@ class CLI {
     CLI::out( $output );
     
   }
+  public static function op_invoice2html() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $yaml_data = WorklogSummary::summary_invoice2($data,CLI::$args);
+    $saved = JsonConfig::config_get('worklog-config');
+    $invoice_template_name = current( CLI::get_template_paths() ); 
+
+    // markdown twig template
+    $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md.twig';
+    $twig = file_get_contents($twigfile);
+    $vars = $yaml_data;
+    $markdown = Twig::process($twig,$vars)."\n";
+
+    // output
+    $output = Output::markdown_html($markdown);
+    $sections = explode("<hr/>",$output);
+
+    // markdown html template
+    $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.html.twig';
+    $twig = file_get_contents($twigfile);
+    $vars = array('sections'=>$sections);
+    $html = Twig::process($twig,$vars)."\n";
+    $output =  Output::formatted_html($html);
+
+    print $output;
+
+  }  
   public static function op_invoicehtml() {
 
     // build summary
@@ -595,7 +662,7 @@ class CLI {
   }
   public static function op_invoiceexport() {
 
-    // build summary`
+    // build summary
     $data = CLI::get_filtered_data();
     $yaml_data = WorklogSummary::summary_invoice($data,CLI::$args);
     $invoice_number = $yaml_data['invoice']['number'];
@@ -608,7 +675,21 @@ class CLI {
     file_put_contents("$invoice_number.html",$output);
 
   }
+  public static function op_invoice2export() {
 
+    // build summary
+    $data = CLI::get_filtered_data();
+    $yaml_data = WorklogSummary::summary_invoice2($data,CLI::$args);
+    $invoice_number = $yaml_data['invoice']['number'];
+    if (empty($invoice_number)) die('Invoice number is empty');
+
+    ob_start();
+    CLI::op_invoice2html();
+    $output = ob_get_clean();
+
+    file_put_contents("$invoice_number.html",$output);
+
+  }  
   public static function op_config() {
 
     // ask for app details

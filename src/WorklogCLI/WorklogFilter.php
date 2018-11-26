@@ -28,7 +28,7 @@ class WorklogFilter {
         if ($item['started_at'] > $options['range'][1]) continue;
       }
       if (!empty($options['incomeonly'])) {
-        if (empty($item['$'])) continue;
+        if (empty($item['$']) && empty($item['client-$'])) continue;
       }
       $filtered[] = $item;
     }
@@ -146,6 +146,7 @@ class WorklogFilter {
   public static function args_get_category($data,$args) {
     $category_list = WorklogFilter::category_list($data);
     foreach($args as $arg) {
+      $arg = WorklogFilter::normalize($arg);
       if (in_array($arg,$category_list)) {
         return $arg;
       }
