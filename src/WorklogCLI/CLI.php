@@ -20,7 +20,7 @@ class CLI {
     CLI::$args = $args;
 
     // call method for operation if there is one
-    $op_method = 'op_'.$op;
+    $op_method = 'op_'.strtr($op,'-','_');
     if (method_exists(get_called_class(),$op_method)) {
       call_user_func_array(get_called_class().'::'.$op_method,array());
       return;
@@ -502,6 +502,17 @@ class CLI {
     CLI::out( $output );
 
   }  
+  public static function op_queued_stardot() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $grouped = WorklogSummary::summary_queued_by_title($data,CLI::$args);
+
+    // output
+    $output = Output::formatted_stardot($grouped);
+    CLI::out( $output );
+
+  }    
   public static function op_markdown() {
 
     // build summary

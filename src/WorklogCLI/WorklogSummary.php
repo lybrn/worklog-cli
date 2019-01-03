@@ -40,6 +40,28 @@ class WorklogSummary {
     return $rows;
     
   }
+  public static function summary_queued_by_title($parsed,$args=array()) {
+                
+    $grouped = array();
+    foreach($parsed as $item) {
+              
+      foreach($item['queued'] as $queued) {
+        
+        $title = @$queued['title'] ?: $item['title'];
+        $client = @$queued['category'] ?: $item['client'];
+        $text = $queued['text']; 
+        $grouped[ $client ][ $title ][ $text ] = $text;
+        
+      }      
+    }
+    foreach($grouped as $client=>$titles) {
+      foreach($titles as $title=>$group) {
+        $grouped[$client][$title] = array_values($group);
+      }
+    }
+    return $grouped;
+    
+  }  
   public static function summary_days($parsed,$args=array()) {
                 
     // info
