@@ -256,6 +256,17 @@ class CLI {
     CLI::out( $output );
 
   }
+  public static function op_check_days() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $rows = Check::check_days($data,CLI::$args);
+
+    // output
+    $output = Output::whitespace_table($rows);
+    CLI::out( $output );
+
+  }  
   public static function op_daylines() {
 
     // build summary
