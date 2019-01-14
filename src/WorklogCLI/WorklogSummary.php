@@ -286,10 +286,12 @@ class WorklogSummary {
       $invoice['invoice'] = Format::array_keys_remove_prefix( Format::normalize_array_keys( current( CLI::get_note_data_by_keys( CLI::args() ) ) ), 'invoice');
       $invoice['client'] =  Format::array_keys_remove_prefix( Format::normalize_array_keys( current( CLI::get_note_data_by_keys( 'Client-'.$invoice['invoice']['client'] ) ) ), 'client');;
       $invoice['worker'] =  Format::array_keys_remove_prefix( Format::normalize_array_keys( current( CLI::get_note_data_by_keys( 'Worker-'.$invoice['invoice']['worker'] ) ) ), 'worker');;
-
+      
+      $range = explode(' ',$invoice['invoice']['range']);
+      
       $filter_args = [];
       $filter_args[] = $invoice['invoice']['client'];
-      $filter_args[] = $invoice['invoice']['range'];
+      foreach($range as $range_point) $filter_args[] = $range_point;
       $filter_args[] = '$';
 
       $parsed = CLI::get_filtered_data( $filter_args );
