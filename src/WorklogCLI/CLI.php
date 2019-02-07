@@ -2,10 +2,39 @@
 namespace WorklogCLI;
 class CLI {
 
+  private static $original_args = [];
   private static $args = [];
   
+  public static function original_args() {
+    return CLI::$original_args;
+  }
   public static function args() {
     return CLI::$args;
+  }
+  public static function add_args($add = null) {
+    if (is_string($add)) CLI::$args[] = $add;
+    if (is_array($add)) foreach($add as $arg) CLI::$args[] = $arg;
+    return CLI::$args;
+  }
+  public static function remove_arg($arg_to_remove) {
+    // if arg to remove is empty. return
+    if (empty($arg_to_remove)) return;
+    // make normalized version of arg to remove
+    $arg_to_remove_normalized = Format::normalize_key($arg_to_remove);
+    // loop through stored args
+    foreach(CLI::$args as $i=>$arg) {
+      // if this arg is empty, continue
+      if (empty($arg)) continue;
+      // if this arg matches arg to remove, unset
+      if ($arg==$arg_to_remove) unset(CLI::$args[$i]);
+      // get normalized copy of this arg
+      $arg_normalized = Format::normalize_key($arg);
+      // if either normalized version is empty, continue
+      if (empty($arg_normalized)) continue;
+      if (empty($arg_to_remove_normalized)) continue;
+      // if normailize arg matches normalized arg to remove, unset
+      if ($arg_normalized==$arg_to_remove_normalized) unset(CLI::$args[$i]);
+    }
   }
   public static function cli($argv) {
 
@@ -17,8 +46,16 @@ class CLI {
     $op = array_shift($args);
 
     // set static args variable
+    CLI::$original_args = $args;
     CLI::$args = $args;
 
+    // get args for current invoice if there is one
+    $invoice_args = CLI::get_invoice_filter_args();
+    if (!empty($invoice_args)) {
+      CLI::remove_arg( CLI::get_invoice_number() );
+      CLI::add_args( $invoice_args );
+    }
+    
     // call method for operation if there is one
     $op_method = 'op_'.strtr($op,'-','_');
     if (method_exists(get_called_class(),$op_method)) {
@@ -184,6 +221,65 @@ class CLI {
     return $cached[$args_key];
 
   }  
+  public static function get_invoice_number() {
+
+    static $cached_invoice_number = null;
+    if (!empty($cached_invoice_number)) return $cached_invoice_number;
+    
+    // loop through each arg
+    foreach(CLI::args() as $key) {
+      // normalize key
+      $key = Format::normalize_key($key);
+      // get any data for this key
+      $data = CLI::get_note_data_by_keys($key);
+      // if no data found, continue
+      if (empty($data)) continue;
+      // format array keys on data found
+      $data = Format::normalize_array_keys(current($data));
+      // get the invoice nmber if there is one
+      $data_invoice_number = Format::normalize_key($data['invoicenumber']) ?: null;
+      // if no invoice number found, continue
+      if (empty($data_invoice_number)) continue;
+      // if arg key matches the invoice dumber, return the invoice number
+      if ($key==$data_invoice_number) {
+        $cached_invoice_number = $data_invoice_number;
+        return $cached_invoice_number;
+      }
+    }
+    // if we got this far, no invoice number has been found
+    return null;
+    
+  }     
+  public static function get_invoice_data() {  
+    // get invoice number
+    $invoice_number = CLI::get_invoice_number();
+    // if no data found, continue
+    if (empty($invoice_number)) return null;
+    // get any data for this key
+    $data = CLI::get_note_data_by_keys($invoice_number);
+    // if no data found, continue
+    if (empty($data)) return null;
+    // format array keys on data found
+    $data = Format::normalize_array_keys(current($data));    
+    $data = Format::array_keys_remove_prefix($data,'invoice');
+    // return data
+    return $data;
+  }
+  public static function get_invoice_filter_args() {  
+    // get invoice data 
+    $invoice_data = CLI::get_invoice_data();
+    // build array of filder arguments from invoice data
+    $filter_args = [];
+    // add client 
+    if (!empty($invoice_data['client'])) 
+      $filter_args[] = Format::normalize_key($invoice_data['client']);
+    // add range
+    $range = explode(' ',$invoice_data['range']);
+    foreach($range as $range_point) 
+      if (!empty($range_point)) $filter_args[] = $range_point;
+    // return filter arguments
+    return $filter_args;
+  }
   public static function op_usage() {
 
     // print usage info
@@ -279,7 +375,7 @@ class CLI {
 
   }
   public static function op_cats() {
-
+    
     // build summary
     $data = CLI::get_filtered_data();
     $rows = WorklogSummary::summary_categories($data,CLI::$args);
@@ -559,7 +655,6 @@ class CLI {
   public static function op_notedatadump() {
 
     // get data
-    $keys = CLI::$args;
     $data = CLI::get_note_data();
 
     // output data
@@ -570,7 +665,7 @@ class CLI {
   public static function op_notedata() {
 
     // get data
-    $keys = CLI::$args;
+    $keys = CLI::$original_args;
     $data = CLI::get_note_data_by_keys($keys);
 
     // output data
