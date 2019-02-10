@@ -230,7 +230,23 @@ class WorklogSummary {
     
   }        
   public static function summary_entry_lines($parsed,$args=array()) {
-                
+
+    // array that will stil first line number
+    $first_line_number = [];
+    
+    // flag to set if this is a single client
+    $one_client = true;
+    $last_client = null;
+    foreach($parsed as $item) {
+      $client = $item['client'];
+      if (is_null($last_client)) {
+        $last_client = $client;
+      } else if ($client != $last_client) {
+        $one_client = false;
+        break;
+      }
+    }
+    
     // info
     $summary = array();
     foreach($parsed as $item) {
@@ -247,18 +263,35 @@ class WorklogSummary {
         $task_tasktype,
         $task_status
       ));
-      $task_summary = array(
-        'key'=>$task_key,
-        'text'=>$task_text,
-        'client'=>$task_client,
-        'project'=>$task_project,
-        'type'=>$task_tasktype,
-        'status'=>$task_status,
-        'brackets'=>$task_brackets,
-        'line'=>$task_line,
-      );
-      $sortkey = $task_summary;
-      $sortkey['brackets'] = implode('-',$sortkey['brackets']);
+      
+      $first_line_key = [];
+      $first_line_key[] = $task_client;
+      $first_line_key[] = $task_project;
+      $first_line_key[] = $task_text;
+      $first_line_key = implode('-',$first_line_key);
+      
+      if (empty($first_line_number[ $first_line_key ]))
+        $first_line_number[ $first_line_key ] = $task_line;
+      else if ($task_line < $first_line_number[ $first_line_key ])
+        $first_line_number[ $first_line_key ] = $task_line;
+
+      
+      $task_summary = [];
+      if (!$one_client) $task_summary['client'] = $task_client;
+      $task_summary['key'] = $task_key;
+      $task_summary['text'] = $task_text;
+      $task_summary['status'] = $task_status;
+      $task_summary['type'] = $task_tasktype;
+      $task_summary['project'] = $task_project;
+      $task_summary['brackets'] = $task_brackets;
+      $task_summary['line'] =  $task_line;
+      
+      $sortkey = [];
+      $sortkey[] = $first_line_number[ $first_line_key ];
+      $sortkey[] = $task_client;
+      $sortkey[] = $task_project;
+      $sortkey[] = $task_text;
+      $sortkey[] = $task_line;
       $sortkey = implode('-',$sortkey);
       unset($task_summary['key']);
       if (!empty($task_summary['brackets'])) {
@@ -269,7 +302,7 @@ class WorklogSummary {
     ksort($summary,SORT_NATURAL);  
     return array_values($summary);
     
-  }          
+  }             
   public static function summary_invoice2() {
                   
       $invoice = array(
