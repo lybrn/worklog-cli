@@ -229,6 +229,64 @@ class WorklogSummary {
     return array_values($summary);
     
   }        
+  public static function summary_statuses($parsed,$args=array()) {
+    
+    $statuses = [];
+    
+    $all_brackets_are_empty = true;
+    
+    foreach($parsed as $item) {
+      $task_client = $item['client'];
+      $task_project = $item['project'];
+      $task_tasktype = $item['task'];
+      $task_status = $item['status'];
+      $task_brackets = $item['title_brackets'];
+      $task_brackets = WorklogData::brackets_remove_item($task_brackets,array(
+        $task_project,
+        $task_tasktype,
+        $task_status
+      ));
+      if (!empty($task_brackets)) {
+        $all_brackets_are_empty = false;
+        break;
+      }
+      
+    }
+    foreach($parsed as $item) {
+      
+      $task_line = $item['line_number'];
+      $task_text = $item['title'];
+      $task_client = $item['client'];
+      $task_project = $item['project'];
+      $task_tasktype = $item['task'];
+      $task_status = $item['status'];
+      $task_brackets = $item['title_brackets'];
+      $task_brackets = WorklogData::brackets_remove_item($task_brackets,array(
+        $task_project,
+        $task_tasktype,
+        $task_status
+      ));
+
+      $sortkey = [];
+      $sortkey[] = $task_client;
+      $sortkey[] = $task_project;
+      $sortkey[] = $task_text;
+      $sortkey = implode('-',$sortkey);      
+      
+      if (empty($statuses[$sortkey])) {
+        $statuses[$sortkey]['project'] = @$task_project ?: '-';
+        $statuses[$sortkey]['text'] = $task_text;
+        $statuses[$sortkey]['status'] = @$task_status ?: '-';
+        //$statuses[$sortkey]['type'] = @$task_tasktype ?: '-';
+        if (!$all_brackets_are_empty) $statuses[$sortkey]['brackets'] = $task_brackets;
+        $statuses[$sortkey]['line'] =  $task_line;    
+      } else {
+        $statuses[$sortkey]['status'] = $task_status;
+        $statuses[$sortkey]['line'] =  $task_line;    
+      }
+    }
+    return array_values($statuses);
+  }
   public static function summary_entry_lines($parsed,$args=array()) {
 
     // array that will stil first line number
@@ -245,6 +303,26 @@ class WorklogSummary {
         $one_client = false;
         break;
       }
+    }
+    
+    // flag to set if all brackets are empty
+    $all_brackets_are_empty = true;
+    foreach($parsed as $item) {
+      $task_client = $item['client'];
+      $task_project = $item['project'];
+      $task_tasktype = $item['task'];
+      $task_status = $item['status'];
+      $task_brackets = $item['title_brackets'];
+      $task_brackets = WorklogData::brackets_remove_item($task_brackets,array(
+        $task_project,
+        $task_tasktype,
+        $task_status
+      ));
+      if (!empty($task_brackets)) {
+        $all_brackets_are_empty = false;
+        break;
+      }
+      
     }
     
     // info
@@ -283,7 +361,7 @@ class WorklogSummary {
       $task_summary['status'] = $task_status;
       $task_summary['type'] = $task_tasktype;
       $task_summary['project'] = $task_project;
-      $task_summary['brackets'] = $task_brackets;
+      if (!$all_brackets_are_empty) $task_summary['brackets'] = $task_brackets;
       $task_summary['line'] =  $task_line;
       
       $sortkey = [];

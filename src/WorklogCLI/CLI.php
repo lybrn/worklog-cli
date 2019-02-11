@@ -440,6 +440,17 @@ class CLI {
     CLI::out( $output );
 
   }
+  public static function op_statuses() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $rows = WorklogSummary::summary_statuses($data,CLI::$args);
+
+    // output
+    $output = Output::whitespace_table($rows);
+    CLI::out( $output );
+
+  }  
   public static function op_categories() {
 
     // get categories
