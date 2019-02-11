@@ -382,7 +382,9 @@ class WorklogSummary {
     
   }             
   public static function summary_invoice2() {
-                  
+      
+      $invoice_data = CLI::get_invoice_data();
+      
       $invoice = array(
         'invoice' => array(),
         'client' => array(),
@@ -394,7 +396,7 @@ class WorklogSummary {
       );
       
       // info
-      $invoice['invoice'] = Format::array_keys_remove_prefix( Format::normalize_array_keys( current( CLI::get_note_data_by_keys( CLI::args() ) ) ), 'invoice');
+      $invoice['invoice'] = $invoice_data;
       $invoice['client'] =  Format::array_keys_remove_prefix( Format::normalize_array_keys( current( CLI::get_note_data_by_keys( 'Client-'.$invoice['invoice']['client'] ) ) ), 'client');;
       $invoice['worker'] =  Format::array_keys_remove_prefix( Format::normalize_array_keys( current( CLI::get_note_data_by_keys( 'Worker-'.$invoice['invoice']['worker'] ) ) ), 'worker');;
       

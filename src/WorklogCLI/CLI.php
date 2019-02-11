@@ -712,10 +712,7 @@ class CLI {
   public static function op_invoice2() {
 
     // build summary
-    $data = CLI::get_filtered_data();
-    $yaml_data = WorklogSummary::summary_invoice2($data,CLI::$args);
-
-    // output
+    $yaml_data = WorklogSummary::summary_invoice2();
     $output = Output::formatted_yaml($yaml_data);
     CLI::out( $output );
 
@@ -734,8 +731,7 @@ class CLI {
   public static function op_invoice2html() {
 
     // build summary
-    $data = CLI::get_filtered_data();
-    $yaml_data = WorklogSummary::summary_invoice2($data,CLI::$args);
+    $yaml_data = WorklogSummary::summary_invoice2();
     $saved = JsonConfig::config_get('worklog-config');
     $invoice_template_name = current( CLI::get_template_paths() ); 
 
@@ -806,15 +802,14 @@ class CLI {
   public static function op_invoice2export() {
 
     // build summary
-    $data = CLI::get_filtered_data();
-    $yaml_data = WorklogSummary::summary_invoice2($data,CLI::$args);
+    $yaml_data = WorklogSummary::summary_invoice2();
     $invoice_number = $yaml_data['invoice']['number'];
     if (empty($invoice_number)) die('Invoice number is empty');
-
+    
     ob_start();
     CLI::op_invoice2html();
     $output = ob_get_clean();
-
+    
     file_put_contents("$invoice_number.html",$output);
 
   }  
