@@ -205,12 +205,23 @@ class CLI {
       
       if (empty($keys)) return [];
       if (!is_array($keys)) $keys = [ $keys ];
-            
+      
+      // notedata keys
+      $normalized_keys = array_keys($normalized);
+      
       // return data
       $return = [];
       foreach($keys as $key) {
-        $key_normal = Format::normalize_key($key);
-        if (!empty($normalized[$key_normal]))
+        $key_normal = Format::normalize_key($key,'*');
+        if (preg_match('/\*/i',$key_normal)) {
+          $pattern = '/^'.strtr($key_normal,[ '*' => '.*' ]).'$/';
+          foreach($normalized_keys as $matchkey) {
+            if (preg_match($pattern,$matchkey) && !empty($normalized[$matchkey])) {
+              $return[ $normalized[$matchkey] ] = $notedata[ $normalized[$matchkey] ];
+            }
+          }
+        }
+        else if (!empty($normalized[$key_normal]))
           $return[ $normalized[$key_normal] ] = $notedata[ $normalized[$key_normal] ];
         
       }

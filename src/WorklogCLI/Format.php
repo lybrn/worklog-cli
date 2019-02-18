@@ -2,10 +2,10 @@
 namespace WorklogCLI;
 class Format {
 
-  public static function normalize_key($string) {
+  public static function normalize_key($string,$keep='') {
     if (!is_string($string)) $string = "$string";
     $normalized = preg_replace('/\([^\)]*\)/i','',$string);
-    $normalized = preg_replace('/[^a-z0-9]/i','',$normalized);
+    $normalized = preg_replace('/[^a-z0-9'.preg_quote($keep).']/i','',$normalized);
     $normalized = strtolower($normalized);
     return $normalized;
   }
