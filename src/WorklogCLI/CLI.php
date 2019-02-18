@@ -270,8 +270,10 @@ class CLI {
     $invoice_data = CLI::get_invoice_data();
     // build array of filder arguments from invoice data
     $filter_args = [];
-    // add client 
-    if (!empty($invoice_data['client'])) 
+    // add client or category
+    if (!empty($invoice_data['category'])) 
+      $filter_args[] = Format::normalize_key($invoice_data['category']);
+    else if (!empty($invoice_data['client'])) 
       $filter_args[] = Format::normalize_key($invoice_data['client']);
     // add range
     $range = explode(' ',$invoice_data['range']);
@@ -279,6 +281,16 @@ class CLI {
       if (!empty($range_point)) $filter_args[] = $range_point;
     // return filter arguments
     return $filter_args;
+  }
+  public static function op_args() {
+  
+    $args = [];
+    $args['original_args'] = CLI::$original_args;
+    $args['filter_args'] = CLI::$args;
+    
+    $output = Output::formatted_stardot($args);
+    CLI::out($args);
+    
   }
   public static function op_usage() {
 

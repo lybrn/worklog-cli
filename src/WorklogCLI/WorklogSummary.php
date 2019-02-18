@@ -402,11 +402,9 @@ class WorklogSummary {
       
       $range = explode(' ',$invoice['invoice']['range']);
       
-      $filter_args = [];
-      $filter_args[] = $invoice['invoice']['client'];
-      foreach($range as $range_point) $filter_args[] = $range_point;
-      $filter_args[] = '$';
-
+      $filter_args = CLI::args();
+      //$filter_args[] = '$';
+      
       $parsed = CLI::get_filtered_data( $filter_args );
       $invoice['entries'] = WorklogData::get_entries_data2($parsed,$filter_args);
       $invoice['pricing'] = WorklogData::get_pricing_data2($parsed);
