@@ -124,27 +124,38 @@ class Output {
     // check if rows uses numeric keys
     $uses_nonnumeric_keys = !empty($rows) && !@is_numeric(key(current($rows)));
     
+    // build array of all keys
+    if ($uses_nonnumeric_keys) { 
+        $all_keys = [];
+        if (is_array($rows)) foreach($rows as $cols) {
+          if (is_array($cols)) foreach($cols as $colk=>$colv) {
+              if (is_numeric($colk) && !empty($colv)) $colk=$colv;
+              if (empty($all_keys[$colk])) $all_keys[$colk] = $colk;
+          }
+        }          
+    }
+    
     // build and add header row if nonnumeric keys
     if ($uses_nonnumeric_keys) { 
       $header_row = array();
       $divider_row = array();
-      $keys = @array_keys(current($rows));
-      if (is_array($keys)) foreach($keys as $header) {
-        $header_row[] = strtoupper($header);
-        $divider_row[] = str_repeat('-',mb_strlen($header));
+      $keys = $all_keys; 
+      if (is_array($keys)) foreach($keys as $k=>$header) {
+        $header_row[$k] = strtoupper($header);
+        $divider_row[$k] = str_repeat('-',mb_strlen($header));
       }
       array_unshift($rows,$divider_row);
       array_unshift($rows,$header_row);
     }
-    
+        
     // determine largest size for each column
     $column_sizes = array();
     if (is_array($rows)) foreach($rows as $cols) { 
-      $cols = @array_values($cols);
-      if (is_array($cols)) foreach($cols as $i=>$value) {
+      foreach($all_keys as $key) {
+        $value = array_key_exists($key, $cols) ? $cols[$key] : '';
         if (is_array($value)) $value = implode(', ',$value);
-        if (empty($column_sizes[$i]) || mb_strlen($value) > $column_sizes[$i]) {
-          $column_sizes[$i] = mb_strlen($value);
+        if (empty($column_sizes[$key]) || mb_strlen($value) > $column_sizes[$key]) {
+          $column_sizes[$key] = mb_strlen($value);
         }
       }
     }
@@ -152,13 +163,17 @@ class Output {
     // create lines from rows of column values
     $lines = array();
     if (is_array($rows)) foreach($rows as $cols) {
-      $cols = @array_values($cols);
       $line = array();
-      if (is_array($cols)) foreach($cols as $i=>$value) {
+      foreach($all_keys as $key) {
+        $value = array_key_exists($key, $cols) ? $cols[$key] : '-';
         if (is_array($value)) $value = implode(', ',$value);
-        $line[] = str_pad($value,$column_sizes[$i]," ");
+        $column_size = $column_sizes[$key];
+        $value = str_pad($value,$column_size," ");
+        $line[] = $value;
       }
-      $lines[] = trim(implode("   ",$line));
+      
+      $line = implode("   ",$line);
+      $lines[] = $line;
     }
     
     // implode into output and return

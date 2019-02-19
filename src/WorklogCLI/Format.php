@@ -18,6 +18,39 @@ class Format {
     }
     return $array_normalized;
   }
+  public static function array_shape_rows($rows,$type_keys) {
+    
+    // break srting on | if this is a string
+    if (is_string($type_keys)) 
+      $type_keys = explode('|',$type_keys);
+  
+    // build key value type array
+    $type = [];
+    foreach($type_keys as $k=>$v) {
+      if (is_numeric($k) && is_string($v) && !empty($v)) {
+        $v_normalized = Format::normalize_key($v);
+        $type[ $v_normalized ] = $v;
+      } else if (!is_numeric($k) && !empty($v)){
+        $k_normalized = Format::normalize_key($k);
+        $type[ $k_normalized ] = $v;
+      }
+    }
+    
+    // shape 
+    $rows_shaped = [];
+    foreach($rows as $row) {
+      $row_shaped = [];
+      $row_normalized = Format::normalize_array_keys($row);      
+      foreach($type as $type_key_normalized => $type_key_value) {
+        $row_shaped[ $type_key_value ] = array_key_exists($type_key_normalized,$row_normalized) ?
+          $row_normalized[ $type_key_normalized ] : 
+          null;
+      }
+      $rows_shaped[] = $row_shaped;
+    }
+    
+    return $rows_shaped;
+  }  
   public static function array_keys_remove_prefix($array,$prefix) {
     if (!is_array($array)) return null;
     $array_unprefixed = [];
