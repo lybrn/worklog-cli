@@ -719,7 +719,7 @@ class CLI {
     $data = Format::array_shape_rows($data,$typedata);
     
     // output data
-    $output = Output::whitespace_table($data);
+    $output = Output::whitespace_table($data,TRUE);
     CLI::out($output);
 
   }  

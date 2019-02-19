@@ -108,7 +108,7 @@ class Output {
     
     return $content."\n";    
   }
-  public function whitespace_table($rows) {
+  public function whitespace_table($rows,$include_totals_row=false) {
 
     // check if this is a single column of values
     $is_one_column = !@is_array(current($rows)) && @is_numeric(key($rows));
@@ -140,14 +140,52 @@ class Output {
       $header_row = array();
       $divider_row = array();
       $keys = $all_keys; 
-      if (is_array($keys)) foreach($keys as $k=>$header) {
-        $header_row[$k] = strtoupper($header);
-        $divider_row[$k] = str_repeat('-',mb_strlen($header));
+      if (is_array($keys)) foreach($keys as $k=>$key) {
+        $header_row[$k] = strtoupper($key);
+        $divider_row[$k] = str_repeat('-',mb_strlen($key));
       }
       array_unshift($rows,$divider_row);
       array_unshift($rows,$header_row);
     }
         
+    // build add totals row
+    if ($include_totals_row) {
+      $totals = [];
+      $decimals = [];
+      $totals_row = array();
+      $divider_row = array();
+      if (is_array($rows)) foreach($rows as $cols) { 
+        foreach($all_keys as $key) {
+          $value = array_key_exists($key, $cols) ? $cols[$key] : '';
+          if (is_numeric($value)) {  
+            $totals[$key] += $value;
+            $dotbroken = explode('.',$value);
+            $value_decimals = count($dotbroken)==2 ? strlen(end(explode('.',$value))) : 0;
+            if (empty($decimals[$key]) || $value_decimals > $decimals[$key]) 
+              $decimals[$key] = $value_decimals;
+            
+          }
+        }
+      }
+      if (!empty($totals)) {
+        $keys = $all_keys; 
+        $first_key = current($all_keys);
+        if (is_array($keys)) foreach($keys as $k=>$key) {
+          $total = number_format((float) $totals[$k], $decimals[$key], '.', '');
+          $totals_row[$k] = @$total ?: '';
+          if ($k == $first_key && empty($total)) {
+            $totals_row[ $k ] = 'TOTALS:';
+          }
+
+          $divider_row[$k] = $totals_row[$k]=='' ? 
+            str_repeat(' ',mb_strlen($totals_row[$k])) :
+            str_repeat('-',mb_strlen($totals_row[$k]));
+        }
+        array_push($rows,$divider_row);
+        array_push($rows,$totals_row);
+      }
+    }
+    
     // determine largest size for each column
     $column_sizes = array();
     if (is_array($rows)) foreach($rows as $cols) { 
