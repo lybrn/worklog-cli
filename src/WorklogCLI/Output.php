@@ -125,15 +125,14 @@ class Output {
     $uses_nonnumeric_keys = !empty($rows) && !@is_numeric(key(current($rows)));
     
     // build array of all keys
-    if ($uses_nonnumeric_keys) { 
-        $all_keys = [];
-        if (is_array($rows)) foreach($rows as $cols) {
-          if (is_array($cols)) foreach($cols as $colk=>$colv) {
-              if (is_numeric($colk) && !empty($colv)) $colk=$colv;
-              if (empty($all_keys[$colk])) $all_keys[$colk] = $colk;
-          }
-        }          
-    }
+    $all_keys = [];
+    if (is_array($rows)) foreach($rows as $cols) {
+      if (is_array($cols)) foreach($cols as $colk=>$colv) {
+        //if (is_numeric($colk) && !empty($colv)) $colk=$colv;   
+        //if (empty($all_keys[$colk])) $all_keys[$colk] = $colk;
+        $all_keys[$colk] = $colk;
+      }
+    }          
     
     // build and add header row if nonnumeric keys
     if ($uses_nonnumeric_keys) { 
@@ -189,7 +188,7 @@ class Output {
     // determine largest size for each column
     $column_sizes = array();
     if (is_array($rows)) foreach($rows as $cols) { 
-      foreach($all_keys as $key) {
+      if (is_array($all_keys)) foreach($all_keys as $key) {
         $value = array_key_exists($key, $cols) ? $cols[$key] : '';
         if (is_array($value)) $value = implode(', ',$value);
         if (empty($column_sizes[$key]) || mb_strlen($value) > $column_sizes[$key]) {
@@ -202,7 +201,7 @@ class Output {
     $lines = array();
     if (is_array($rows)) foreach($rows as $cols) {
       $line = array();
-      foreach($all_keys as $key) {
+      if (is_array($all_keys)) foreach($all_keys as $key) {
         $value = array_key_exists($key, $cols) ? $cols[$key] : '-';
         if (is_array($value)) $value = implode(', ',$value);
         $column_size = $column_sizes[$key];
