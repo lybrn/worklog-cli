@@ -570,6 +570,42 @@ class CLI {
 
 
   }
+  public static function op_sittings() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $options = WorklogFilter::get_options($data,CLI::$args);
+    $fromdate = current($options['range']);
+    $todate = end($options['range']);
+    $rows = WorklogSummary::summary_sittings($data,CLI::$args);
+    $total = 0.0;
+    $mult = 0.0;
+    $income = 0.0;
+    $count = 0;
+    foreach($data as $row) {
+      $total += $row['hours'];
+      $mult += $row['multiplier'];
+      $income += $row['$'];
+      if (!empty($row['$'])) $count++;
+    }
+    $total = Format::format_hours($total);
+    $income = Format::format_cost($income);
+    $mult = number_format($mult / $count,1);
+    if ($fromdate==$todate) {
+      $date_title = date('Y-m-d',strtotime($fromdate));
+    } else {
+      $date_title = date('Y-m-d',strtotime($fromdate))." to ".date('Y-m-d',strtotime($todate));
+    }
+    $output_title = $date_title." /// \$$income ($total * $mult)\n";
+    $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
+
+    // output
+    $output = $output_title;
+    $output .= Output::whitespace_table($rows);
+    CLI::out( $output );
+
+
+  }  
   public static function op_billing() {
 
     // build summary

@@ -523,7 +523,7 @@ class WorklogSummary {
       }
       return $rows;
       
-    }    
+    }   
     public static function summary_review($parsed,$args=array()) {
             
       $rows = array();
@@ -546,27 +546,47 @@ class WorklogSummary {
       return $rows;
       
     }
+    public static function summary_sittings($parsed,$args=array()) {
+            
+      $rows = array();
+      foreach($parsed as $item) {
+        $row = array();
+        $row['line'] = $item['line_number'];
+        $row['client'] = $item['client'];
+        $row['date'] = date('Y-m-d',strtotime($item['started_at']));
+        $row['task'] = $item['title'];
+        $row['hours'] = $item['hours'];
+        $row['mult'] = $item['multiplier'];
+        $row['total'] = !empty($item['$']) ? '$'.Format::format_cost($item['$']) : '';
+        $rows[] = $row;
+      }
+      return $rows;
+      
+    }           
     public static function summary_billing($parsed,$args=array()) {
             
       $client_bills = array();
       foreach($parsed as $item) {
         $client_bill = @$client_bills[ $item['client'] ] ?: array(
           'client'=>$item['client'],
-          'projects'=>array(),
-          'sittings'=>0,
           'hours'=>0.0,
+          'mult'=>[],
           'total'=>0.0,
+          //'projects'=>array(),
+          'sittings'=>0,
         );
         if (!empty($item['total'] )) $client_bill['hours'] += Format::format_hours($item['total']);
+        if (!empty($item['multiplier'] )) $client_bill['mult'][] = $item['multiplier'];
         if (!empty($item['$'])) $client_bill['total'] += Format::format_cost($item['$']);
         $client_bill['sittings'] += 1;
-        if (!empty($item['project'])) $client_bill['projects'][ $item['project'] ] = $item['project'];
+        // if (!empty($item['project'])) $client_bill['projects'][ $item['project'] ] = $item['project'];
         $client_bills[ $item['client'] ] = $client_bill;
       }
       foreach($client_bills as &$client_bill) {
-        $client_bill['total'] = '$'.$client_bill['total'];
+        $client_bill['total'] = '$'.Format::format_cost($client_bill['total']);
+        $client_bill['mult'] = array_sum($client_bill['mult']) / count($client_bill['mult']);
         $client_bill['sittings'] = $client_bill['sittings']; //.' sittings';
-        $client_bill['projects'] = count($client_bill['projects']); //.' projects';
+        // $client_bill['projects'] = count($client_bill['projects']); //.' projects';
       }           
       return $client_bills;
       
