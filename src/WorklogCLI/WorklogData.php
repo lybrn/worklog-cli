@@ -553,6 +553,7 @@ class WorklogData {
               $multipler = WorklogData::brackets_get_multiplier($title_brackets);
               if (empty($multipler)) $multipler = '1.0';
               $rate = WorklogData::brackets_get_rate($category_brackets);
+              if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
               $task_brackets = WorklogData::line_get_brackets($taskline);
               $task_line_number = $tasks['linenum'];
@@ -658,7 +659,7 @@ class WorklogData {
               $entry['status'] = $taskstatus;
               $entry['project'] = $taskproject;
               $entry['total'] = $total;
-              $entry['$'] = $total * $rate;
+              $entry['$'] = is_numeric($rate) ? $total * $rate : 0;
               $entry['day_brackets'] = $day['day_brackets'];
               $entry['category_brackets'] = $category_brackets;
               $entry['time_brackets'] = $time_brackets;

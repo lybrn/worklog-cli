@@ -100,7 +100,7 @@ class MDON {
         // get position of top stack item
         $top = count($stack)-1;
         // add row to below top stack item
-        $stack[$top]['rows'][] = &$rows[$r];
+        if (!empty($stack)) $stack[$top]['rows'][] = &$rows[$r];
         // add row to stack
         $stack[] = &$rows[$r];
         //print "=".$row['depth']."/$top: ".$row['text']."\n";
@@ -113,7 +113,7 @@ class MDON {
         // get position of top stack item
         $top = count($stack)-1;
         // add row to below top stack item
-        $stack[$top]['rows'][] = &$rows[$r];
+        if (!empty($stack)) $stack[$top]['rows'][] = &$rows[$r];
         // add row to stack
         $stack[] = &$rows[$r];
         //print "+".$row['depth']."/$top: ".$row['text']."\n";
@@ -129,7 +129,7 @@ class MDON {
           // get position of top stack item
           $top = count($stack)-1;
           // add row to top of stack
-          $stack[$top]['rows'][] = &$rows[$r];
+          if (!empty($stack)) $stack[$top]['rows'][] = &$rows[$r];
         } else {
           // add row to tree
           $tree[] =  &$rows[$r];
