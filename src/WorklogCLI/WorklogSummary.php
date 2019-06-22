@@ -403,7 +403,7 @@ class WorklogSummary {
       $range = explode(' ',$invoice['invoice']['range']);
       
       $filter_args = CLI::args();
-      //$filter_args[] = '$';
+      $filter_args[] = '$';
       
       $parsed = CLI::get_filtered_data( $filter_args );
       $invoice['entries'] = WorklogData::get_entries_data2($parsed,$filter_args);
