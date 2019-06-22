@@ -16,8 +16,9 @@
 {{ worker.email }}, {{ worker.phone }}  
 
 **{{ client.fullname }}**  
-c/o {{ client.contactname }}  
-{{ client.address }}
+{% if client.contactname %}c/o {{ client.contactname }}  {% endif %}
+{{ client.address }}  
+{{ client.contactemail }}, {{ client.contactphone }}  
 
 ---
 
