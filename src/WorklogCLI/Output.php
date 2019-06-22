@@ -108,7 +108,7 @@ class Output {
     
     return $content."\n";    
   }
-  public function whitespace_table($rows,$include_totals_row=false) {
+  public function whitespace_table($rows,$include_totals_row=false,$sort_key=null) {
 
     // check if this is a single column of values
     $is_one_column = !@is_array(current($rows)) && @is_numeric(key($rows));
@@ -131,8 +131,24 @@ class Output {
         //if (is_numeric($colk) && !empty($colv)) $colk=$colv;   
         //if (empty($all_keys[$colk])) $all_keys[$colk] = $colk;
         $all_keys[$colk] = $colk;
+        if (strpos($colk,'^')!==false) {
+          $sort_key = $colk;
+        }
+        
       }
-    }          
+    }  
+    
+    // sort rows
+    if (!empty($all_keys[$sort_key])) {
+      $sorted = [];
+      foreach($rows as $i => $row) {
+        $sortable_key = $row[$sort_key] ?: '-';
+        $sortable_key.= '-'.$i;
+        $sorted[$sortable_key] = $row;
+      }
+      ksort($sorted);
+      $rows = $sorted;
+    }
     
     // build and add header row if nonnumeric keys
     if ($uses_nonnumeric_keys) { 
