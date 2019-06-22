@@ -247,8 +247,9 @@ class CLI {
       if (empty($data)) continue;
       // format array keys on data found
       $data = Format::normalize_array_keys(current($data));
+      $data = Format::array_keys_remove_prefix($data,['invoice','work']);
       // get the invoice nmber if there is one
-      $data_invoice_number = Format::normalize_key($data['invoicenumber']) ?: null;
+      $data_invoice_number = Format::normalize_key($data['number']) ?: null;
       // if no invoice number found, continue
       if (empty($data_invoice_number)) continue;
       // if arg key matches the invoice dumber, return the invoice number
@@ -272,7 +273,7 @@ class CLI {
     if (empty($data)) return null;
     // format array keys on data found
     $data = Format::normalize_array_keys(current($data));    
-    $data = Format::array_keys_remove_prefix($data,'invoice');
+    $data = Format::array_keys_remove_prefix($data,[ 'invoice','work' ]);
     // return data
     return $data;
   }
@@ -611,15 +612,23 @@ class CLI {
     // build summary
     $data = CLI::get_filtered_data();
     $options = WorklogFilter::get_options($data,CLI::$args);
-    $fromdate = strtotime(current($options['range']));
-    $todate = strtotime(end($options['range']));
+    $fromdate = @strtotime(current($options['range']));
+    $todate = @strtotime(end($options['range']));
     $rows = WorklogSummary::summary_billing($data,CLI::$args);
     $income = 0;
     $hours = 0;
     foreach($data as $row) {
       $income += $row['$'];
+      $started_at = strtotime($row['started_at']);
+      if (empty($earliest) || $started_at < $earliest)
+        $earliest = $started_at;
+      if (empty($latest) || $started_at > $latest)
+        $latest = $started_at;
       $hours += $row['total'];
     }
+    if (empty($fromdate)) $fromdate = $earliest;
+    if (empty($todate)) $todate = $latest;
+    
     $income = Format::format_cost($income);
     if ( date('Y-m-d',$fromdate) == date('Y-m-d',$todate) ) {
       $date_title = date('Y-m-d',$fromdate);
