@@ -26,7 +26,7 @@ class Format {
   
     // build key value type array
     $type = [];
-    foreach($type_keys as $k=>$v) {
+    if (is_array($type_keys)) foreach($type_keys as $k=>$v) {
       if (is_numeric($k) && is_string($v) && !empty($v)) {
         $v_normalized = Format::normalize_key($v);
         $type[ $v_normalized ] = $v;
@@ -51,11 +51,19 @@ class Format {
     
     return $rows_shaped;
   }  
-  public static function array_keys_remove_prefix($array,$prefix) {
+  public static function array_keys_remove_prefix($array,$prefixes) {
     if (!is_array($array)) return null;
+    if (empty($prefixes)) return $array;
+    if (!is_array($prefixes)) $prefixes = [ $prefixes ];
     $array_unprefixed = [];
     foreach($array as $k=>$v) {
-      $k_unprefixed = preg_replace("/^".preg_quote($prefix)."/",'',$k);
+      $k_unprefixed = $k;
+      $previous = $k_unprefixed;
+      foreach($prefixes as $prefix) {
+        $k_unprefixed = preg_replace("/^".preg_quote($prefix)."/",'',$k_unprefixed);
+        if ($k_unprefixed!=$previous) break; // prevent removing more than on prefix
+        $previous = $k_unprefixed;
+      }
       $array_unprefixed[ $k_unprefixed ] = $v;
     }
     return $array_unprefixed;
