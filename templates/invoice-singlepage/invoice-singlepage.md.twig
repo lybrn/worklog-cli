@@ -24,17 +24,16 @@
 
 > {{ invoice.period }} work done for {{ client.shortname }}  
 > **{{ pricing.hours }} hours**  
-> *Average: {{ timeline.hperweek }} hours weekly — {{ timeline.weeks }} weeks ({{ timeline.days }} days)*  
 
 ---
 
 {% for project in projects %}
-### {{ project.name }} work - {{ project.hours }} hours
+### {{ project.name }} - {{ project.hours }} hours {% if project.rate %}_${{ project.rate | replace({'.00':''}) }}/h_{% endif %}
 
-| Task                                               | Status               | Hours
-|:---------------------------------------------------|:---------------------|:------------------|
+| Task                                               | Status               | Hours             
+|:---------------------------------------------------|:---------------------|:------------------
 {% for task in project.tasks %}
-| {{ task.title                                   }} | {{ task.status    }} | {{ task.hours }}
+| {{ task.title                                   }} | {{ task.status    }} | {{ task.hours }}  
 {% endfor %}
 
 {% endfor %}

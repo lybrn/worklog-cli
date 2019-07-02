@@ -13,9 +13,12 @@ th { font-weight: normal; }
 .totals-region blockquote { text-align: center; font-size:2em; }
 .totals-region blockquote strong { font-weight:500; }
 .totals-region blockquote p em { font-size: 16px; line-height: 1.4; display: block; }
+.totals-region h3 em { float: right; font-size:14px; display: block; font-style: normal; font-weight: 300; margin-top: 12px; margin-right: 10px; }
 .totals-region table thead { display:none; }
+.totals-region table td:nth-child(1) { width:100%; text-align: left; }
 .totals-region table td:nth-child(2) { width:150px; text-align: center; }
 .totals-region table td:nth-child(3) { width:150px; text-align: center; }
+.totals-region table td:nth-child(4) { width:150px; text-align: center; opacity:0.5 }
 .breakdown-region blockquote table { margin-bottom:0;}  
 .breakdown-region blockquote table th { text-align: center; }
 .breakdown-region blockquote table td { text-align: center; }
