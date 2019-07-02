@@ -96,20 +96,18 @@ class WorklogData {
     $firstitem = current($parsed);
     $client_rate = Format::format_cost( $firstitem['client-rate'] );
     $taxpercent = (float) trim( $firstitem['client-taxpercent'] ,'%') / 100.0;
-    
+
+    // calculate hours and subtotal
     foreach($parsed as $item) {
       if (!empty($item['hours'])) $pricing['hours'] += Format::format_hours( $item['hours_multiplied'] );
       if (!empty($item['subtotal'])) $pricing['subtotal'] += Format::format_cost( $item['subtotal'] );
-      if (!empty($item['tax'])) $pricing['tax'] += Format::format_cost( $item['tax'] );  
-      if (!empty($item['total'])) $pricing['total'] += Format::format_cost( $item['subtotal'] + $item['tax'] );  
-      if (!empty($item['client'])) $pricing['client'] = $item['client'];
     }
-    // $pricing['hours'] = $pricing['hours'];
-    // $pricing['subtotal'] = is_numeric($rate) ? Format::format_cost( $pricing['hours'] * $rate ) : 0;
-    // $pricing['tax'] = Format::format_cost( $pricing['subtotal'] * $taxpercent );
-    // $pricing['taxpercent'] = Format::format_cost( $taxpercent );
-    // $pricing['total'] = Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
 
+    // calculate tax and total
+    $pricing['tax'] = Format::format_cost( $pricing['subtotal'] * $taxpercent );
+    $pricing['total'] = Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
+
+    // format values
     $pricing['hours'] = Format::format_hours( $pricing['hours'] );
     $pricing['subtotal'] = Format::format_cost( $pricing['subtotal'] , array('comma'=>TRUE) );
     $pricing['tax'] = Format::format_cost( $pricing['tax'] , array('comma'=>TRUE) );
