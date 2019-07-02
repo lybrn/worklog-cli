@@ -614,6 +614,7 @@ class WorklogSummary {
         $row['client'] = $item['client'];
         $row['hours'] = Format::format_hours($item['hours']);
         $row['time_brackets'] = $item['time_brackets'];
+        $row['???'] = $item['unknown_brackets'];
         $row['mult'] = $item['multiplier'];
         $row['total'] = Format::format_hours($item['total']);
         $row['line'] = $item['line_number'];
@@ -797,3 +798,4 @@ class WorklogSummary {
       
     }     
 }
+  

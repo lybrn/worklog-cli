@@ -84,6 +84,7 @@ class WorklogData {
     return $timeline;
   }
   public static function get_pricing_data2($parsed) {
+
     $pricing = array(
       'hours'=>0.0,
       'subtotal'=>0.0,
@@ -93,22 +94,26 @@ class WorklogData {
     );
 
     $firstitem = current($parsed);
-    $rate = Format::format_cost( $firstitem['client-rate'] );
+    $client_rate = Format::format_cost( $firstitem['client-rate'] );
     $taxpercent = (float) trim( $firstitem['client-taxpercent'] ,'%') / 100.0;
-
+    
     foreach($parsed as $item) {
-      $hours = $item['total'];
-      $pricing['hours'] += Format::format_hours( $hours );
-      
+      if (!empty($item['hours'])) $pricing['hours'] += Format::format_hours( $item['hours_multiplied'] );
+      if (!empty($item['subtotal'])) $pricing['subtotal'] += Format::format_cost( $item['subtotal'] );
+      if (!empty($item['tax'])) $pricing['tax'] += Format::format_cost( $item['tax'] );  
+      if (!empty($item['total'])) $pricing['total'] += Format::format_cost( $item['subtotal'] + $item['tax'] );  
+      if (!empty($item['client'])) $pricing['client'] = $item['client'];
     }
-    $pricing['hours'] = $pricing['hours'];
-    $pricing['subtotal'] = is_numeric($rate) ? Format::format_cost( $pricing['hours'] * $rate ) : 0;
-    $pricing['tax'] = Format::format_cost( $pricing['subtotal'] * $taxpercent );
-    $pricing['taxpercent'] = Format::format_cost( $taxpercent );
-    $pricing['total'] = Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
+    // $pricing['hours'] = $pricing['hours'];
+    // $pricing['subtotal'] = is_numeric($rate) ? Format::format_cost( $pricing['hours'] * $rate ) : 0;
+    // $pricing['tax'] = Format::format_cost( $pricing['subtotal'] * $taxpercent );
+    // $pricing['taxpercent'] = Format::format_cost( $taxpercent );
+    // $pricing['total'] = Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
 
+    $pricing['hours'] = Format::format_hours( $pricing['hours'] );
     $pricing['subtotal'] = Format::format_cost( $pricing['subtotal'] , array('comma'=>TRUE) );
     $pricing['tax'] = Format::format_cost( $pricing['tax'] , array('comma'=>TRUE) );
+    $pricing['taxpercent'] = Format::format_cost( $taxpercent );
     $pricing['total'] = Format::format_cost( $pricing['total'] , array('comma'=>TRUE) );
 
     return $pricing;
@@ -200,6 +205,8 @@ class WorklogData {
         'name' => $item['client-project'],
         'key' => $projectkey,
         'hours' => Format::format_hours(0),
+        'rate' => $item['rate'],
+        'project-rate' => $item['project-rate'],
       );
     }
     // entries
@@ -268,6 +275,7 @@ class WorklogData {
         'status' => null,
         'hours' => 0,
         'sittings' => 0,
+        'rate' => Format::format_cost($item['rate']),
       );
     }
     // hours and status
@@ -549,6 +557,8 @@ class WorklogData {
               $category_statuses = current( CLI::get_note_data_by_keys( 'Statuses-'.$entry_category ) );
               $category_rate = current( CLI::get_note_data_by_keys( 'Client-'.$entry_category ) )['Client Rate'];
               $category_taxpercent = current( CLI::get_note_data_by_keys( 'Client-'.$entry_category ) )['Client Tax Percent'];
+              $category_taxratio = (float) trim($category_taxpercent,'%') / 100.0;
+
               $title_brackets = WorklogData::line_get_brackets($tasktitle);
               $multipler = WorklogData::brackets_get_multiplier($title_brackets);
               if (empty($multipler)) $multipler = '1.0';
@@ -556,6 +566,7 @@ class WorklogData {
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
               $task_brackets = WorklogData::line_get_brackets($taskline);
+              $unknown_brackets = [];
               $task_line_number = $tasks['linenum'];
               $lowest = null;
               $highest = null;
@@ -585,6 +596,7 @@ class WorklogData {
               foreach($task_brackets as $k=>$v) {
                 if (is_array($used) && !in_array($v,$used)) {
                   $task_brackets[$k] = '?'.$v.'?';
+                  $unknown_brackets[] = $v;
                 }
               }
               foreach($title_brackets as $k=>$v) {
@@ -601,11 +613,11 @@ class WorklogData {
 
               $length = $highest - $lowest + $offset;
               $hours = Format::format_hours( round($length / "60.0" / "60.0",'2') );
-              $total = Format::format_hours( $hours * $multipler );
+              $hours_multiplied = Format::format_hours( $hours * $multipler );
               $tasktitle = WorklogData::line_clean_brackets($tasktitle);
               $tasknote = WorklogData::line_clean_brackets($tasknote);
               $taskline = WorklogData::line_clean_brackets($taskline);
-
+              
               $projects = @$category_info[ $cleancategory ]['projects'] ?: array();
               $taskproject = WorklogData::brackets_match_item($title_brackets,$projects);
               $tasks = @$category_info[ $cleancategory ]['tasks'] ?: array();
@@ -633,20 +645,42 @@ class WorklogData {
                 $client_rate,
               ));
               
+              $client_project_details = current( CLI::get_note_data_by_keys( 'Project-'.$entry_category.'-'.$client_project ) );
+              $client_project_details = Format::array_keys_remove_prefix( Format::normalize_array_keys( $client_project_details ),'project');
+              $project_rate = null;
+              if (!empty($client_project_details['name'])) $client_project = $client_project_details['name'];
+              if (!empty($client_project_details['number'])) $client_project .= ' '.$client_project_details['number'];
+              if (!empty($client_project_details['rate'])) $project_rate = Format::format_cost( $client_project_details['rate'] ); 
+              
+              
+              
+              if (!empty($category_projects)) { $taskproject = $client_project; }
+              if (!empty($category_tasks)) $tasktask = $client_task;
+              if (!empty($category_statuses)) $taskstatus = $client_status;
+              if (!empty($category_rate)) $rate = $client_rate;
+              if (!empty($project_rate)) $rate = $project_rate;
+              
               $entry = array();
               $entry['day_text'] = $day['day_text'];
               $entry['stamp'] = $day['timestamp'];
               $entry['date'] = date('Y-m-d',$day['timestamp']);
               $entry['started_at'] = date('Y-m-d H:i:s', $lowest ?: $day['timestamp']);
-              $entry['hours'] = $hours;
               $entry['title'] = $tasktitle;
               $entry['note'] = $taskcleannote;
               $entry['notes'] = $clean_notes;
               $entry['queued'] = $queued;
               $entry['category_info'] = $category_info[ $cleancategory ];
               $entry['client'] = $entry_category;
-              $entry['multiplier'] = $multipler;
+
+              $entry['hours'] = $hours;
+              $entry['multiplier'] = $multipler; 
+              $entry['hours_multiplied'] = $hours_multiplied;             
               $entry['rate'] = $rate;
+              $entry['subtotal'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
+              $entry['taxpercent'] = is_numeric($client_taxpercent) ? $client_taxpercent : 0;
+              $entry['taxratio'] = is_numeric($category_taxratio) ? $category_taxratio : 0;
+              $entry['tax'] = $entry['subtotal'] * $entry['taxratio'];
+              
               $entry['project'] = $taskproject;
               $entry['client-project'] = $client_project;
               $entry['client-task'] = $client_task;
@@ -654,16 +688,19 @@ class WorklogData {
               $entry['client-free-brackets'] = $client_free_brackets;
               $entry['client-rate'] = $client_rate;
               $entry['client-taxpercent'] = $client_taxpercent;
-              $entry['client-$'] = is_numeric($client_rate) ? $total * $client_rate : 0;
+              $entry['client-$'] = is_numeric($client_rate) ? $hours_multiplied * $client_rate : 0;
+              $entry['project-rate'] = $project_rate;
               $entry['task'] = $tasktask;
               $entry['status'] = $taskstatus;
               $entry['project'] = $taskproject;
-              $entry['total'] = $total;
-              $entry['$'] = is_numeric($rate) ? $total * $rate : 0;
+              $entry['total'] = $hours_multiplied;
+              $entry['$'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
               $entry['day_brackets'] = $day['day_brackets'];
               $entry['category_brackets'] = $category_brackets;
               $entry['time_brackets'] = $time_brackets;
               $entry['title_brackets'] = $title_brackets;
+              $entry['task_brackets'] = $task_brackets;
+              $entry['unknown_brackets'] = $unknown_brackets;
               $entry['brackets'] = $all_brackets;
               $entry['free_brackets'] = $free_brackets;
               $entry['day_line_number'] = $day_line_number;

@@ -824,10 +824,11 @@ class CLI {
   public static function op_invoice2html() {
 
     // build summary
+    $invoice_data = CLI::get_invoice_data();
     $yaml_data = WorklogSummary::summary_invoice2();
     $saved = JsonConfig::config_get('worklog-config');
-    $invoice_template_name = current( CLI::get_template_paths() ); 
-
+    $invoice_template_name = $invoice_data['template'] ?: current( CLI::get_template_paths() ); 
+    
     // markdown twig template
     $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md.twig';
     $twig = file_get_contents($twigfile);
@@ -837,11 +838,22 @@ class CLI {
     // output
     $output = Output::markdown_html($markdown);
     $sections = explode("<hr/>",$output);
+    
+    // get file contents
+    $scan_dir = 'templates/'.$invoice_template_name;
+    $scanned = Scan::scan(CLI::root(),$scan_dir,['return_files'=>TRUE]);
+    $file_contents = [];
+    foreach($scanned as $file) {
+      $key = basename($file);
+      $contents = file_get_contents(CLI::root().'/'.$file);
+      $file_contents[$key] = $contents;
+    }
 
     // markdown html template
     $twigfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.html.twig';
     $twig = file_get_contents($twigfile);
     $vars = array('sections'=>$sections);
+    $vars['files'] = $file_contents;
     $html = Twig::process($twig,$vars)."\n";
     $output =  Output::formatted_html($html);
 
