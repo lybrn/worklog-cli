@@ -558,10 +558,12 @@ class WorklogData {
               $category_rate = current( CLI::get_note_data_by_keys( 'Client-'.$entry_category ) )['Client Rate'];
               $category_taxpercent = current( CLI::get_note_data_by_keys( 'Client-'.$entry_category ) )['Client Tax Percent'];
               $category_taxratio = (float) trim($category_taxpercent,'%') / 100.0;
+              $category_multiplier = WorklogData::brackets_get_multiplier($category_brackets);
+              if (empty($category_multiplier)) $category_multiplier = '1.0';
 
               $title_brackets = WorklogData::line_get_brackets($tasktitle);
-              $multipler = WorklogData::brackets_get_multiplier($title_brackets);
-              if (empty($multipler)) $multipler = '1.0';
+              $title_multiplier = WorklogData::brackets_get_multiplier($title_brackets);
+              if (empty($title_multiplier)) $title_multiplier = '1.0';
               $rate = WorklogData::brackets_get_rate($category_brackets);
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
@@ -611,9 +613,11 @@ class WorklogData {
               );
               $free_brackets = $all_brackets;
 
+              $multiplier = $category_multiplier * $title_multiplier;
+              
               $length = $highest - $lowest + $offset;
               $hours = Format::format_hours( round($length / "60.0" / "60.0",'2') );
-              $hours_multiplied = Format::format_hours( $hours * $multipler );
+              $hours_multiplied = Format::format_hours( $hours * $multiplier );
               $tasktitle = WorklogData::line_clean_brackets($tasktitle);
               $tasknote = WorklogData::line_clean_brackets($tasknote);
               $taskline = WorklogData::line_clean_brackets($taskline);
@@ -673,7 +677,9 @@ class WorklogData {
               $entry['client'] = $entry_category;
 
               $entry['hours'] = $hours;
-              $entry['multiplier'] = $multipler; 
+              $entry['multiplier'] = $multiplier; 
+              $entry['category_multiplier'] = $category_multiplier; 
+              $entry['title_multiplier'] = $title_multiplier; 
               $entry['hours_multiplied'] = $hours_multiplied;             
               $entry['rate'] = $rate;
               $entry['subtotal'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
