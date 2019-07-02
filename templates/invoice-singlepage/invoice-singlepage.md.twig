@@ -4,7 +4,9 @@
 
 | Invoice | Details           
 |-|
+{% if invoice.number and not invoice.hidenumber %}
 | Invoice number | {{ invoice.number }}  
+{% endif %}
 | Invoice date   | {{ invoice.date }}  
 | Payment due    | {{ invoice.due }}  
 | Total amount   | CA${{ pricing.total }}  
@@ -18,12 +20,21 @@
 **{{ client.fullname }}**  
 {% if client.contactname %}c/o {{ client.contactname }}  {% endif %}
 {{ client.address }}  
-{{ client.contactemail }}, {{ client.contactphone }}  
+{{ client.contactemail }}{% if client.contactphone %}, {{ client.contactphone }}{% endif %}  
 
 ---
 
+{% if not invoice.hideperiod %}
+
 > {{ invoice.period }} work done for {{ client.shortname }}  
 > **{{ pricing.hours }} hours**  
+
+{% else %}
+
+> Work done for {{ client.shortname }}  
+> **{{ pricing.hours }} hours**  
+
+{% endif %}
 
 ---
 
@@ -40,9 +51,9 @@
 
 ---
 
-> | Hours | Rate | Subtotal | Tax Rate | Taxes | Total
+> | Hours | Subtotal {% if client.taxname %} | Tax Rate | Taxes {% endif %} | Total
 > |-
-> | {{ pricing.hours }} hours | CA${{ client.rate }} | CA${{ pricing.subtotal }} | {{ client.taxname }} *#{{ worker.taxaccount }}* | CA${{ pricing.tax }} | CA${{ pricing.total }}
+> | {{ pricing.hours }} hours  | CA${{ pricing.subtotal }}  {% if client.taxname %} | {{ client.taxname }} *#{{ worker.taxaccount }}* | CA${{ pricing.tax }} {% endif %} | CA${{ pricing.total }}
   
 ---  
 
@@ -65,12 +76,19 @@
 
 ---
 
+{% if client.terms %}
+
 ### Terms
 
 *{{ client.terms }}*
 
+{% endif %}
 ---
+
+{% if client.note %}
 
 ### Note
 
 *{{ client.note }}*
+
+{% endif %}
