@@ -4,10 +4,10 @@ h3 { margin-top:30px; margin-bottom:10px; }
 blockquote { clear:both; background: white; border:1px solid #ddd; }
 table { width:100%; }
 th { font-weight: normal; }
-.container { padding:20px 80px }
+.container.container { padding:20px 80px; text-align: left; }
 .header-region { padding-bottom:30px; }
 .header-region h1 { padding-bottom:20px; }
-.header-region table { float:right; width:300px; }
+.header-region table { float:right; width:300px; margin-left:20px; }
 .header-region table thead { display:none; }
 .header-region table td { white-space: nowrap; }
 .totals-region blockquote { text-align: center; font-size:2em; }
