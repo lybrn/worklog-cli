@@ -635,7 +635,8 @@ class CLI {
     } else {
       $date_title = date('Y-m-d',$fromdate)." to ".date('Y-m-d',$todate);
     }
-    $output_title = $date_title." /// $hours /// \$$income\n";
+    $normalized_hours = Format::format_hours($income / 80.0); 
+    $output_title = $date_title." /// $hours /// \$$income -- $normalized_hours @ $80\n";
     $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
 
     // output
