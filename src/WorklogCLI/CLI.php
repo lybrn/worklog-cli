@@ -287,6 +287,11 @@ class CLI {
       $filter_args[] = Format::normalize_key($invoice_data['category']);
     else if (!empty($invoice_data['client'])) 
       $filter_args[] = Format::normalize_key($invoice_data['client']);
+    if (!empty($invoice_data['project'])) {
+      $projects = explode(' ',$invoice_data['project']);
+      foreach($projects as $project) 
+        $filter_args[] = Format::normalize_key($project);
+    }
     // add range
     $range = explode(' ',$invoice_data['range']);
     foreach($range as $range_point) 

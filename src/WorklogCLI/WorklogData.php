@@ -288,7 +288,7 @@ class WorklogData {
     foreach($tasks as $task) {
       $task['hours'] = Format::format_hours( $task['hours'] );
       $sortkey = Format::normalize_key(implode('-',array(
-        $task['hours'],
+        $task['hours'] + 10000.00, // add 10k so even negative hours are positve when sorting
         $task['title'],
       )));
       $sorted[ $sortkey ] = $task;
@@ -324,7 +324,7 @@ class WorklogData {
     foreach($tasks as $task) {
       $task['hours'] = Format::format_hours( $task['hours'] );
       $sortkey = Format::normalize_key(implode('-',array(
-        $task['hours'],
+        $task['hours'] + 10000.00, // add 10k so even negative hours are positve when sorting
         $task['title'],
       )));
       $sorted[ $sortkey ] = $task;

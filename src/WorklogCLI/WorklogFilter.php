@@ -7,19 +7,19 @@ class WorklogFilter {
     if (empty($options)) return $parsed;
     $filtered = array();
     foreach($parsed as $item) {
-      if (!is_null($options['category'])) {
+      if (!is_null($options['categories'])) {
         $client = WorklogFilter::normalize($item['client']);
-        if ($client!=$options['category']) { continue; }
+        if (!in_array($client,$options['categories'])) { continue; }
       }
       // if (!is_null($options['task'])) {
       //   $task = WorklogFilter::normalize($item['title']);
       //   if ($task!=$options['task']) continue;
       // }
-      if (!is_null($options['bracket'])) {
+      if (!is_null($options['brackets'])) {
         $found = false;
         foreach($item['brackets'] as $bracket) {
           $bracket = WorklogFilter::normalize($bracket);
-          if ($bracket==$options['bracket']) { $found = true; break; }
+          if (in_array($bracket,$options['brackets'])) { $found = true; break; }
         }
         if (!$found) { continue; }
       }
@@ -38,15 +38,15 @@ class WorklogFilter {
     
     // get option values
     $range = WorklogFilter::args_get_date_range($args);
-    $category = WorklogFilter::args_get_category($parsed,$args);
-    $bracket = WorklogFilter::args_get_bracket($parsed,$args);
+    $categories = WorklogFilter::args_get_categories($parsed,$args);
+    $brackets = WorklogFilter::args_get_brackets($parsed,$args);
     $task = WorklogFilter::args_get_task($parsed,$args);
     $incomeonly = WorklogFilter::args_get_income_flag($parsed,$args);
     // build options array
     $options = array();
     if (!is_null($range)) $options['range'] = $range;
-    if (!is_null($category)) $options['category'] = $category;
-    if (!is_null($bracket)) $options['bracket'] = $bracket;
+    if (!is_null($categories)) $options['categories'] = $categories;
+    if (!is_null($brackets)) $options['brackets'] = $brackets;
     if (!is_null($incomeonly)) $options['incomeonly'] = $incomeonly;
     // return
     return $options;
@@ -143,14 +143,16 @@ class WorklogFilter {
     $month = WorklogFilter::args_get_text_month($args);
     if (!is_null($month)) return $month;
   }
-  public static function args_get_category($data,$args) {
+  public static function args_get_categories($data,$args) {
     $category_list = WorklogFilter::category_list($data);
+    $categories = [];
     foreach($args as $arg) {
       $arg = WorklogFilter::normalize($arg);
       if (in_array($arg,$category_list)) {
-        return $arg;
+        $categories[] = $arg;
       }
     }      
+    return $categories;
   }
   public static function args_get_task($data,$args) {
     $task_list = WorklogFilter::tasks_list($data);
@@ -171,13 +173,15 @@ class WorklogFilter {
     $rows = array_values($worklog_tasks);
     return $rows;  
   }      
-  public static function args_get_bracket($data,$args) {
+  public static function args_get_brackets($data,$args) {
     $bracket_list = WorklogFilter::brackets_list($data);
+    $brackets = [];
     foreach($args as $arg) {
       if (in_array($arg,$bracket_list)) {
-        return $arg;
+        $brackets[] = $arg;
       }
-    }      
+    }   
+    return $brackets;   
   }
   public static function args_get_income_flag($data,$args) {
     foreach($args as $arg) {
