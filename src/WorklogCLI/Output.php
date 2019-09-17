@@ -28,13 +28,13 @@ class Output {
     $doc = new \DomDocument('1.0');
     $doc->preserveWhiteSpace = false;
     $doc->formatOutput = true;
-    $doc->loadXML($html);
-    $output = $doc->saveXML();
+    $doc->loadXML( mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8') );
+    $output = $doc->saveHTML( $doc->documentElement );
     $output = trim(strtr($output,array(
       '<?xml version="1.0"?>'=>'<!DOCTYPE html>',
     )));
     $output = preg_replace('/^  /m','',$output);
-    return $output;
+    return '<!DOCTYPE html>'."\n".$output;
   
   
   }  
