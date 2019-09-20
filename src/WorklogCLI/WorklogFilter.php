@@ -45,8 +45,8 @@ class WorklogFilter {
     // build options array
     $options = array();
     if (!is_null($range)) $options['range'] = $range;
-    if (!is_null($categories)) $options['categories'] = $categories;
-    if (!is_null($brackets)) $options['brackets'] = $brackets;
+    if (!empty($categories)) $options['categories'] = $categories;
+    if (!empty($brackets)) $options['brackets'] = $brackets;
     if (!is_null($incomeonly)) $options['incomeonly'] = $incomeonly;
     // return
     return $options;
@@ -147,6 +147,9 @@ class WorklogFilter {
     $category_list = WorklogFilter::category_list($data);
     $categories = [];
     foreach($args as $arg) {
+      // dont consider args that are valid datetime strings (like "today")
+      $arg_is_valid_datetime = !empty(strtotime($arg));
+      if ($arg_is_valid_datetime) continue;
       $arg = WorklogFilter::normalize($arg);
       if (in_array($arg,$category_list)) {
         $categories[] = $arg;
