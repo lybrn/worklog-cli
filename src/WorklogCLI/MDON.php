@@ -70,7 +70,7 @@ class MDON {
           'pos'=>count($rows),
           'style'=>$style,
           'line'=>$matched,
-          'linenum'=>$i,
+          'linenum'=>$i+1,
           'text'=>$text,
         );
       }

@@ -131,7 +131,7 @@ class Output {
         //if (is_numeric($colk) && !empty($colv)) $colk=$colv;   
         //if (empty($all_keys[$colk])) $all_keys[$colk] = $colk;
         $all_keys[$colk] = $colk;
-        if (strpos($colk,'^')!==false) {
+        if (mb_strpos($colk,'^')!==false) {
           $sort_key = $colk;
         }
         
@@ -175,7 +175,7 @@ class Output {
           if (is_numeric($value)) {  
             $totals[$key] += $value;
             $dotbroken = explode('.',$value);
-            $value_decimals = count($dotbroken)==2 ? strlen(end(explode('.',$value))) : 0;
+            $value_decimals = count($dotbroken)==2 ? mb_strlen(end(explode('.',$value))) : 0;
             if (empty($decimals[$key]) || $value_decimals > $decimals[$key]) 
               $decimals[$key] = $value_decimals;
             
@@ -234,6 +234,75 @@ class Output {
     return $output;
     
   }
-  
+  public static function human_time_diff( $from, $to = 0 ) {
+    
+    $MINUTE_IN_SECONDS = 60;
+    $HOUR_IN_SECONDS   = 60 * 60;
+    $DAY_IN_SECONDS    = 60 * 60 * 24;
+    $WEEK_IN_SECONDS   = 60 * 60 * 24 * 7;
+    $MONTH_IN_SECONDS  = 60 * 60 * 24 * 30;
+    $YEAR_IN_SECONDS   = 60 * 60 * 24 * 355;
+    
+    if ( empty( $to ) ) {
+        $to = time();
+    }
+ 
+    $diff = (int) abs( $to - $from );
+    
+    if ( $diff < $MINUTE_IN_SECONDS ) {
+        $secs = $diff;
+        if ( $secs <= 1 ) {
+            $secs = 1;
+        }
+        /* translators: Time difference between two dates, in seconds. %s: Number of seconds. */
+        $since = sprintf( Output::plural( '%s second', '%s seconds', $secs ), $secs );
+    } elseif ( $diff < $HOUR_IN_SECONDS && $diff >= $MINUTE_IN_SECONDS ) {
+        $mins = round( $diff / $MINUTE_IN_SECONDS );
+        if ( $mins <= 1 ) {
+            $mins = 1;
+        }
+        /* translators: Time difference between two dates, in minutes (min=minute). %s: Number of minutes. */
+        $since = sprintf( Output::plural( '%s min', '%s mins', $mins ), $mins );
+    } elseif ( $diff < $DAY_IN_SECONDS && $diff >= $HOUR_IN_SECONDS ) {
+        $hours = round( $diff / $HOUR_IN_SECONDS );
+        if ( $hours <= 1 ) {
+            $hours = 1;
+        }
+        /* translators: Time difference between two dates, in hours. %s: Number of hours. */
+        $since = sprintf( Output::plural( '%s hour', '%s hours', $hours ), $hours );
+    } elseif ( $diff < $WEEK_IN_SECONDS && $diff >= $DAY_IN_SECONDS ) {
+        $days = round( $diff / $DAY_IN_SECONDS );
+        if ( $days <= 1 ) {
+            $days = 1;
+        }
+        /* translators: Time difference between two dates, in days. %s: Number of days. */
+        $since = sprintf( Output::plural( '%s day', '%s days', $days ), $days );
+    } elseif ( $diff < $MONTH_IN_SECONDS && $diff >= $WEEK_IN_SECONDS ) {
+        $weeks = round( $diff / $WEEK_IN_SECONDS );
+        if ( $weeks <= 1 ) {
+            $weeks = 1;
+        }
+        /* translators: Time difference between two dates, in weeks. %s: Number of weeks. */
+        $since = sprintf( Output::plural( '%s week', '%s weeks', $weeks ), $weeks );
+    } elseif ( $diff < $YEAR_IN_SECONDS && $diff >= $MONTH_IN_SECONDS ) {
+        $months = round( $diff / $MONTH_IN_SECONDS );
+        if ( $months <= 1 ) {
+            $months = 1;
+        }
+        /* translators: Time difference between two dates, in months. %s: Number of months. */
+        $since = sprintf( Output::plural( '%s month', '%s months', $months ), $months );
+    } elseif ( $diff >= $YEAR_IN_SECONDS ) {
+        $years = round( $diff / $YEAR_IN_SECONDS );
+        if ( $years <= 1 ) {
+            $years = 1;
+        }
+        /* translators: Time difference between two dates, in years. %s: Number of years. */
+        $since = sprintf( Output::plural( '%s year', '%s years', $years ), $years );
+    }
+    return $since;
+  }
+  public static function plural( $single, $plural, $number ) {
+    return $number==1 ? $single : $plural;
+  }
   
 }

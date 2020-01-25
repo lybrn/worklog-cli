@@ -289,8 +289,11 @@ class CLI {
       $filter_args[] = Format::normalize_key($invoice_data['client']);
     if (!empty($invoice_data['project'])) {
       $projects = explode(' ',$invoice_data['project']);
-      foreach($projects as $project) 
-        $filter_args[] = Format::normalize_key($project);
+      foreach($projects as $project) {
+        $is_negative = substr($project,0,1)=='-';
+        $project = Format::normalize_key($project);
+        $filter_args[] = $is_negative ? '-'.$project : $project;
+      }
     }
     // add range
     $range = explode(' ',$invoice_data['range']);
@@ -480,6 +483,17 @@ class CLI {
     CLI::out( $output );
 
   }  
+  public static function op_inbox() {
+
+    // build summary
+    $data = CLI::get_filtered_data();
+    $rows = WorklogSummary::summary_inbox($data,CLI::$args);
+
+    // output
+    $output = Output::whitespace_table($rows);
+    CLI::out( $output );
+
+  }    
   public static function op_categories() {
 
     // get categories
@@ -490,6 +504,62 @@ class CLI {
     $output = Output::whitespace_table($categories);
     CLI::out( $output );
 
+  }
+  public static function op_ytd() {
+    
+    // get filtered data
+    $data = CLI::get_filtered_data();
+    // get options
+    $options = WorklogFilter::get_options($data,CLI::$args);  
+    $fromdate = strtotime(current($options['range']));
+    $todate = strtotime(end($options['range']));
+    $today = strtotime(date("Y-m-d",time()));
+    $now = time();
+    $day_in_seconds = 60 * 60 * 24;
+    // calculate date differnce
+    $period_not_done_yet = $today < $todate;
+    $period_days = ($todate-$fromdate) / $day_in_seconds ;
+    $period_days = round($period_days,2);
+    $ellapsed_days = $period_not_done_yet ? ($today-$fromdate) / $day_in_seconds  : $period_days;
+    $ellapsed_days = round($ellapsed_days,2);
+    $remaining_days = $period_not_done_yet ? ($todate-$today) / $day_in_seconds : 0;  
+    $remaining_days = round($remaining_days,2);
+    // default report data 
+    $report_data = [];
+    $report_data['rate'] = 80.00;
+    $report_data['goal'] = 60000.00;
+    $report_data['effort'] = 0.0;
+    $report_data['billable'] = 0.0;
+    $report_data['total'] = 0.0;
+    $report_data['multiplier'] = 1.0; 
+    $report_data['period_goal'] = $report_data['goal'];
+    $report_data['period_days'] = $period_days;
+    $report_data['period_weeks'] = $period_days / 7.0; 
+    $report_data['ellapsed_days'] = $ellapsed_days;
+    $report_data['ellapsed_weeks'] = $ellapsed_days / 7.0;
+    $report_data['remainnig_days'] = $remaining_days;
+    $report_data['remainnig_weeks'] = $remaining_days / 7.0;
+    // loop through rows and build data
+    foreach($data as $row) {
+      if (is_numeric($row['$']))          $report_data['total'] += $row['$'];
+      if (is_numeric($row['hours']))      $report_data['effort'] += $row['hours'];
+      if (is_numeric($row['$']))          $report_data['billable'] += $row['$'] / $report_data['rate']; 
+    } 
+    if ($report_data['effort'] > 0) 
+      $report_data['multiplier'] = $report_data['billable'] / $report_data['effort'];
+    $report_data['period_goal'] = $report_data['goal'] / 365.00 * $report_data['period_days'];
+    $report_data['target_goal'] = $report_data['period_goal'] - $report_data['total'];
+    $report_data['target_billable'] = $report_data['target_goal'] /  $report_data['rate'];
+    $report_data['target_billable_weekly'] = $report_data['target_billable'] / $report_data['remainnig_weeks']; 
+    $report_data['target_effort'] = $report_data['target_billable'] / $report_data['multiplier'];
+    $report_data['target_effort_weekly'] = $report_data['target_effort'] / $report_data['remainnig_weeks']; 
+    
+    $print_data = [];
+
+    // output
+    $output = $report_data;
+    CLI::out( $output );
+    
   }
   public static function op_totals() {
 

@@ -205,6 +205,7 @@ class WorklogData {
         'hours' => Format::format_hours(0),
         'rate' => $item['rate'],
         'project-rate' => $item['project-rate'],
+        'subtotal' => 0.0,
       );
     }
     // entries
@@ -212,6 +213,8 @@ class WorklogData {
       $projectkey = Format::normalize_key( $item['client-project'] );
       $projects[$projectkey]['hours'] = (float) $projects[$projectkey]['hours'] + (float) $item['total'];
       $projects[$projectkey]['hours'] = Format::format_hours($projects[$projectkey]['hours']);
+      $projects[$projectkey]['subtotal'] = (float) $projects[$projectkey]['subtotal'] + (float) $item['subtotal'];
+      $projects[$projectkey]['subtotal'] = Format::format_cost($projects[$projectkey]['subtotal']);
     }
     // sort
     $sorted = array();
@@ -220,10 +223,10 @@ class WorklogData {
       $sortkey = Format::normalize_key(implode('-',array(
         $project['hours'],
         $project['name'],
-      )));
+      )),'-');
       $sorted[ $sortkey ] = $project;
     }
-    krsort($sorted,SORT_NATURAL);
+    krsort($sorted,SORT_NATURAL);    
     $sorted = array_values($sorted);
     // return
     return $sorted;
@@ -253,7 +256,7 @@ class WorklogData {
       $sortkey = Format::normalize_key(implode('-',array(
         $project['hours'],
         $project['name'],
-      )));
+      )),'-');
       $sorted[ $sortkey ] = $project;
     }
     krsort($sorted,SORT_NATURAL);
@@ -274,6 +277,7 @@ class WorklogData {
         'hours' => 0,
         'sittings' => 0,
         'rate' => Format::format_cost($item['rate']),
+        'subtotal' => 0.0,
       );
     }
     // hours and status
@@ -281,6 +285,7 @@ class WorklogData {
       $taskkey = Format::normalize_key( $item['client-project'].'-'.$item['title'] );
       $tasks[ $taskkey ]['status'] = $item['client-status'];
       $tasks[ $taskkey ]['hours'] += Format::format_hours($item['total']);
+      $tasks[ $taskkey ]['subtotal'] += Format::format_cost($item['subtotal']);
       $tasks[ $taskkey ]['sittings'] += 1;
     }
     // sort
@@ -288,9 +293,10 @@ class WorklogData {
     foreach($tasks as $task) {
       $task['hours'] = Format::format_hours( $task['hours'] );
       $sortkey = Format::normalize_key(implode('-',array(
-        $task['hours'] + 10000.00, // add 10k so even negative hours are positve when sorting
+        ($task['hours'] * 100.00) + 10000.00, // add 10k so even negative hours are positve when sorting
+        ($task['subtotal'] * 100.00) + 1000000.00, // add 1000k so even negative hours are positve when sorting
         $task['title'],
-      )));
+      )),'-');
       $sorted[ $sortkey ] = $task;
     }
     krsort($sorted,SORT_NATURAL);
@@ -324,9 +330,10 @@ class WorklogData {
     foreach($tasks as $task) {
       $task['hours'] = Format::format_hours( $task['hours'] );
       $sortkey = Format::normalize_key(implode('-',array(
-        $task['hours'] + 10000.00, // add 10k so even negative hours are positve when sorting
+        ($task['hours'] * 100.00) + 10000.00, // add 10k so even negative hours are positve when sorting
+        ($task['subtotal'] * 100.00) + 1000000.00, // add 1000k so even negative hours are positve when sorting
         $task['title'],
-      )));
+      )),'-');
       $sorted[ $sortkey ] = $task;
     }
     krsort($sorted,SORT_NATURAL);
@@ -511,6 +518,7 @@ class WorklogData {
               $output_notes = array();
               $clean_notes = array();
               $time_brackets = array();
+              $cost_brackets = array();
               if (!empty($tasks['rows'])) {
                 foreach($tasks['rows'] as $notes) {
                   if ($notes['style']=='-') {
@@ -535,12 +543,13 @@ class WorklogData {
                   $output_notes[] = $notes['text'];
                   $note_skip = FALSE;
                   $note_brackets = WorklogData::line_get_brackets($notes['text']);
+                  $note_line_number = $notes['linenum'];
                   foreach($note_brackets as $note_time) {
                     $note_time_offset = WorklogData::time_get_offset($note_time);
                     if (!empty($note_time_offset) && $note_time_offset < 0) { $note_skip = TRUE; }
                   }
                   $clean_note = WorklogData::line_clean_brackets($notes['text']);
-                  if (!empty($clean_note) && !$note_skip) $clean_notes[] = $clean_note;
+                  if (!empty($clean_note) && !$note_skip) $clean_notes[ $note_line_number ] = $clean_note;
                 }
               }
               $used = array();
@@ -565,6 +574,7 @@ class WorklogData {
               $rate = WorklogData::brackets_get_rate($category_brackets);
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
+              $title_fixedcost = WorklogData::brackets_get_cost($title_brackets);
               $task_brackets = WorklogData::line_get_brackets($taskline);
               $unknown_brackets = [];
               $task_line_number = $tasks['linenum'];
@@ -580,6 +590,10 @@ class WorklogData {
                   $time_brackets[] = $time;
                   $used[] = $time;
                   continue;
+                }
+                $cost_bracket = WorklogData::brackets_get_cost($time);
+                if (!empty($cost_bracket)) {
+                  $cost_brackets[] = $cost_bracket;
                 }
                 // get timepoint
                 $timepoint = WorklogData::time_get_timestamp_on_day($day['timestamp'],$time,$highest);
@@ -626,7 +640,8 @@ class WorklogData {
               $tasktask = WorklogData::brackets_match_item($title_brackets,$tasks);
               $statuses = @$category_info[ $cleancategory ]['statuses'] ?: array();
               $taskstatus = WorklogData::brackets_match_item($title_brackets,$statuses);
-
+              // $taskfixedcost = WorklogData::brackets_get_cost($title_brackets);
+                
               $free_brackets = WorklogData::brackets_remove_item($free_brackets,array(
                 $taskproject,
                 $tasktask,
@@ -695,10 +710,17 @@ class WorklogData {
               $entry['client-$'] = is_numeric($client_rate) ? $hours_multiplied * $client_rate : 0;
               $entry['project-rate'] = $project_rate;
               $entry['task'] = $tasktask;
+              $entry['task-fixedcost'] = $taskfixedcost;
               $entry['status'] = $taskstatus;
               $entry['project'] = $taskproject;
               $entry['total'] = $hours_multiplied;
               $entry['$'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
+              if (!empty($cost_brackets))  {
+                print_r($cost_brackets);
+                $fixedcost = array_sum($cost_brackets);
+                $entry['$'] = $fixedcost;
+                $entry['subtotal'] = $fixedcost;
+              }
               $entry['day_brackets'] = $day['day_brackets'];
               $entry['category_brackets'] = $category_brackets;
               $entry['time_brackets'] = $time_brackets;
@@ -786,9 +808,23 @@ class WorklogData {
   public static function brackets_get_rate($brackets) {
 
     foreach($brackets as $bracket) {
-      $is_starred = substr($bracket,0,1)=='$';
+      $is_dollarsigned = substr($bracket,0,1)=='$';
       $is_numeric = is_numeric(substr($bracket,1));
-      if ($is_starred && $is_numeric) return substr($bracket,1);
+      if ($is_dollarsigned && $is_numeric) return substr($bracket,1);
+    }
+    return null;
+
+  }
+  public static function brackets_get_cost($brackets) {
+
+    if (!is_array($brackets) && !empty($brackets)) 
+      $brackets = [ $brackets ];
+      
+    foreach($brackets as $bracket) {
+      $is_dollarsigned_or_negative = substr($bracket,0,1)=='$' || substr($bracket,0,2)=='-$';
+      $bracket_cleaned = strtr($bracket,['$'=>'',','=>'']);
+      $is_numeric = is_numeric($bracket_cleaned);
+      if ($is_dollarsigned_or_negative && $is_numeric) return $bracket_cleaned;
     }
     return null;
 

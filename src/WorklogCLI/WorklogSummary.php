@@ -287,6 +287,94 @@ class WorklogSummary {
     }
     return array_values($statuses);
   }
+  public static function summary_inbox($parsed,$args=array()) {
+    
+    $inbox = [];
+    
+    foreach($parsed as $item) {
+      
+      $task_date = $item['date'];
+      $task_line = $item['line_number'];
+      $task_text = $item['title'];
+      $task_client = $item['client'];
+      $task_project = $item['project'];
+      $task_tasktype = $item['task'];
+      $task_status = $item['status'];
+      $task_brackets = $item['title_brackets'];
+      $task_queued = $item['queued'];
+      $task_brackets = WorklogData::brackets_remove_item($task_brackets,array(
+        $task_project,
+        $task_tasktype,
+        $task_status
+      ));
+
+      $uniquekey = [];
+      $uniquekey[] = $task_client;
+      $uniquekey[] = $task_project;
+      $uniquekey[] = $task_text;
+      $uniquekey = implode('-',$uniquekey);      
+      
+      if (empty($inbox[$uniquekey])) {
+        // $inbox[$uniquekey]['ago'] = null; // time since most recent entry
+        $inbox[$uniquekey]['line'] =  $task_line;    
+        $inbox[$uniquekey]['project'] = @$task_project ?: '-';
+        $inbox[$uniquekey]['text'] = $task_text;
+        $inbox[$uniquekey]['first-line'] =  $task_line;
+        $inbox[$uniquekey]['status'] = @$task_status ?: '-';
+        $inbox[$uniquekey]['queued'] = @$task_queued ?: [];
+        $inbox[$uniquekey]['sittings'] = 1;
+        $inbox[$uniquekey]['created'] = $task_date;
+        $inbox[$uniquekey]['updated'] = $task_date;        
+        $inbox[$uniquekey]['age'] = null; // time since first entry
+        $inbox[$uniquekey]['stats'] = null;
+      } else {
+        $inbox[$uniquekey]['updated'] = $task_date;
+        $inbox[$uniquekey]['status'] = $task_status;
+        $inbox[$uniquekey]['line'] =  $task_line;    
+        $inbox[$uniquekey]['queued'] = array_merge($inbox[$uniquekey]['queued'],$task_queued);
+        $inbox[$uniquekey]['sittings']++;
+      }
+    }
+    
+    $sorted = [];
+    foreach($inbox as $item) {
+      
+      $sortkey = [];
+      $sortkey[] = $item['line'];
+      $sortkey = implode('-',$sortkey);    
+      
+      // $item['ago'] = Output::human_time_diff( time(), strtotime($item['updated']) ) . ' ago';
+      $item['age'] = Output::human_time_diff( time(), strtotime($item['created']) ) . ' old';
+
+      
+      unset($item['project']);
+      unset($item['created']);
+      unset($item['first-line']);
+      
+      $queued = [];
+      foreach($item['queued'] as $qitem) {
+        $queued[ $qitem['text'] ] = $qitem['text'];
+      }
+      $item['queued'] = count($queued);
+      
+      $item['stats'] = [];
+      $item['stats'][] = 'S:'.str_pad($item['sittings'],2);
+      if (!empty($item['queued'])) $item['stats'][] = 'Q:'.str_pad($item['queued'],2);
+      $item['stats'] = implode(' ',$item['stats']);
+      
+      
+      if ($item['status']!='In progress' && $item['queued'] == 0) continue;
+      
+      unset($item['queued']);
+      unset($item['sittings']);
+      unset($item['updated']);
+
+        $sorted[ $sortkey ] = $item;
+      
+    }
+    krsort($sorted);
+    return array_values($sorted);
+  }  
   public static function summary_entry_lines($parsed,$args=array()) {
 
     // array that will stil first line number
@@ -334,6 +422,8 @@ class WorklogSummary {
       $task_client = $item['client'];
       $task_project = $item['project'];
       $task_tasktype = $item['task'];
+      $task_total = $item['total'];
+      $task_mult = $item['multiplier'];
       $task_status = $item['status'];
       $task_brackets = $item['title_brackets'];
       $task_brackets = WorklogData::brackets_remove_item($task_brackets,array(
@@ -362,6 +452,8 @@ class WorklogSummary {
       $task_summary['type'] = $task_tasktype;
       $task_summary['project'] = $task_project;
       if (!$all_brackets_are_empty) $task_summary['brackets'] = $task_brackets;
+        $task_summary['mult'] = $task_mult;
+      $task_summary['total'] = $task_total;
       $task_summary['line'] =  $task_line;
       
       $sortkey = [];
@@ -450,6 +542,7 @@ class WorklogSummary {
         $projectkey = Format::normalize_key( $item['project'] );
         $linekey = Format::normalize_key( $projectkey.'-'.$item['title'] );
         if (empty($summary_lines[ $linekey ]['title'])) {
+          $summary_lines[ $linekey ]['client'] = $item['client'];
           $summary_lines[ $linekey ]['project'] = $item['project'];
           $summary_lines[ $linekey ]['title'] = $item['title'];
           $summary_lines[ $linekey ]['hours'] = Format::format_hours($item['total']);
@@ -574,7 +667,9 @@ class WorklogSummary {
           'total'=>0.0,
           //'projects'=>array(),
           'sittings'=>0,
+          'titles'=>[],
         );
+        if (!in_array($item['title'],$client_bill['titles'])) $client_bill['titles'][] = $item['title'];
         if (!empty($item['total'] )) $client_bill['hours'] += Format::format_hours($item['total']);
         if (!empty($item['multiplier'] )) $client_bill['mult'][] = $item['multiplier'];
         if (!empty($item['$'])) $client_bill['total'] += Format::format_cost($item['$']);
@@ -586,6 +681,7 @@ class WorklogSummary {
         $client_bill['total'] = '$'.Format::format_cost($client_bill['total']);
         $client_bill['mult'] = array_sum($client_bill['mult']) / count($client_bill['mult']);
         $client_bill['sittings'] = $client_bill['sittings']; //.' sittings';
+        $client_bill['titles'] = count($client_bill['titles']);
         // $client_bill['projects'] = count($client_bill['projects']); //.' projects';
       }           
       return $client_bills;
@@ -655,22 +751,26 @@ class WorklogSummary {
         $row['line'] = $item['line_number'];
         $row['client'] = $item['client'];
         $row['note'] = '### '.$item['title'];
+        // if (!empty($item['multiplier'])) $row['note'] .= ' (*'.$item['multiplier'].')';
+        $row['mult'] = $item['multiplier'];
         $row['total'] = Format::format_hours($item['total']);
         $rows[] = $row;
         
-        foreach($item['notes'] as $note_text) {
+        foreach($item['notes'] as $note_line_number => $note_text) {
           $row = array();
-          $row['line'] = $item['line_number'];
+          $row['line'] = $note_line_number; //$item['line_number'];
           $row['client'] = $item['client'];
           $row['note'] = '+ '.$note_text;
+          $row['mult'] = $item['multiplier'];
           $row['total'] = Format::format_hours($item['total']);
           $rows[] = $row;
         }
 
         $row = array();
-        $row['line'] = $item['line_number'];
+        $row['line'] = $note_line_number+1;
         $row['client'] = $item['client'];
         $row['note'] = ' ';
+        $row['mult'] = $item['multiplier'];
         $row['total'] = Format::format_hours($item['total']);
         $rows[] = $row;
       }

@@ -6,6 +6,19 @@ class WorklogFilter {
     $options = WorklogFilter::get_options($parsed,$args);
     if (empty($options)) return $parsed;
     $filtered = array();
+    
+    $include_brackets = [];
+    $exclude_brackets = [];
+    if (!is_null($options['brackets'])) {
+      foreach($options['brackets'] as $bracket) {
+        if (substr($bracket,0,1)=='-') {
+          $exclude_brackets[] = substr($bracket,1);
+        } else {
+          $include_brackets[] = $bracket;
+        }
+      }
+    }
+      
     foreach($parsed as $item) {
       if (!is_null($options['categories'])) {
         $client = WorklogFilter::normalize($item['client']);
@@ -15,13 +28,22 @@ class WorklogFilter {
       //   $task = WorklogFilter::normalize($item['title']);
       //   if ($task!=$options['task']) continue;
       // }
-      if (!is_null($options['brackets'])) {
-        $found = false;
+      //
+      if (!empty($include_brackets)) {
+        $include = false;
         foreach($item['brackets'] as $bracket) {
           $bracket = WorklogFilter::normalize($bracket);
-          if (in_array($bracket,$options['brackets'])) { $found = true; break; }
+          if (in_array($bracket,$include_brackets)) { $include = true; break; }
         }
-        if (!$found) { continue; }
+        if (!$include) { continue; }
+      }
+      if (!empty($exclude_brackets)) {
+        $exclude = false;
+        foreach($item['brackets'] as $bracket) {
+          $bracket = WorklogFilter::normalize($bracket);
+          if (in_array($bracket,$exclude_brackets)) { $exclude = true; break; }
+        }
+        if ($exclude) { continue; }
       }
       if (!is_null($options['range'])) {
         if ($item['started_at'] < $options['range'][0]) continue;
@@ -180,8 +202,10 @@ class WorklogFilter {
     $bracket_list = WorklogFilter::brackets_list($data);
     $brackets = [];
     foreach($args as $arg) {
+      $is_negative = substr($arg,0,1)=='-';
+      $arg = WorklogFilter::normalize($arg);
       if (in_array($arg,$bracket_list)) {
-        $brackets[] = $arg;
+        $brackets[] = $is_negative ? '-'.$arg : $arg;
       }
     }   
     return $brackets;   
