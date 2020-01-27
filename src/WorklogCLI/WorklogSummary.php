@@ -289,8 +289,10 @@ class WorklogSummary {
   }
   public static function summary_inbox($parsed,$args=array()) {
     
-    $inbox = [];
     
+    $inbox = [];
+    $clients = [];  
+
     foreach($parsed as $item) {
       
       $task_date = $item['date'];
@@ -312,10 +314,13 @@ class WorklogSummary {
       $uniquekey[] = $task_client;
       $uniquekey[] = $task_project;
       $uniquekey[] = $task_text;
-      $uniquekey = implode('-',$uniquekey);      
+      $uniquekey = implode('-',$uniquekey);    
       
+      $clients[$task_client] = $task_client;
+
       if (empty($inbox[$uniquekey])) {
         // $inbox[$uniquekey]['ago'] = null; // time since most recent entry
+        $inbox[$uniquekey]['client'] =  $task_client;
         $inbox[$uniquekey]['line'] =  $task_line;    
         $inbox[$uniquekey]['project'] = @$task_project ?: '-';
         $inbox[$uniquekey]['text'] = $task_text;
@@ -368,6 +373,8 @@ class WorklogSummary {
       unset($item['queued']);
       unset($item['sittings']);
       unset($item['updated']);
+      
+      if (count($clients)==1) unset($item['client']);
 
         $sorted[ $sortkey ] = $item;
       
