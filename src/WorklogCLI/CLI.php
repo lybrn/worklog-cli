@@ -59,7 +59,11 @@ class CLI {
     // call method for operation if there is one
     $op_method = 'op_'.strtr($op,'-','_');
     if (method_exists(get_called_class(),$op_method)) {
-      call_user_func_array(get_called_class().'::'.$op_method,array());
+      try {
+        call_user_func_array(get_called_class().'::'.$op_method,array());
+      } catch(Exception $e) {
+        print Output::border_box( $e->getMessage() );
+      }
       return;
     }
     
@@ -363,7 +367,7 @@ class CLI {
     print $output;
 
   }
-  public static function op_data() {
+  public static function op_logdata() {
 
     // get data
     $data = CLI::get_filtered_data();
@@ -822,6 +826,7 @@ class CLI {
     // get data
     $keys = CLI::$original_args;
     $data = CLI::get_note_data_by_keys($keys);
+    
 
     // output data
     $output = Output::formatted_stardot($data);
@@ -844,6 +849,47 @@ class CLI {
     CLI::out($output);
 
   }  
+  public static function get_note_data_normalized($key,$assignkey=null) {
+    $data = CLI::get_note_data_by_keys($key);
+    if (empty($data))
+      throw new Exception("No data for key: $key");
+    
+    // if (!empty($assignkey))  
+    //   foreach($data as $k=>$v) { $data[$k][$assignkey] = $k; }
+
+    $assignkey = Format::normalize_key($assignkey,'-_ ./');
+    $data = Format::normalize_array_keys($data,'-_ ./',TRUE);
+    
+    if ($assignkey) {
+      $data = Format::array_keys_remove_prefix($data,$assignkey.'-',TRUE);
+      $data = array_values($data);
+      $data = [ $assignkey => current($data) ];
+    }
+    return $data;
+  }
+  public static function op_data() {
+
+    // get data
+    $assignkey = null;
+    $keys = CLI::$original_args[0];
+    if (strpos($keys,':')!==FALSE) {
+      $assignkey = current(explode(':',$keys));
+      $keys = end(explode(':',$keys));
+    }
+    
+    $data = CLI::get_note_data_normalized($keys,$assignkey);
+    $data = Format::array_flatten($data);
+    //$data = Format::array_extrude($data);
+    print_r($data);
+    
+    // // shape data to type
+    // $typedata = current(CLI::get_note_data_by_keys($typekey));
+    // $data = Format::array_shape_rows($data,$typedata);    
+    // // output data
+    // $output = Output::whitespace_table($data,TRUE);
+    // CLI::out($output);
+    
+  }
   
   public static function op_invoiceyaml() {
 
@@ -965,6 +1011,75 @@ class CLI {
 
 
   }
+  public static function op_rangedata() {
+
+    $data = CLI::get_filtered_data();
+    $data =  WorklogSummary::summary_rangedata($data,CLI::$args);
+    print_r($data);
+
+  }        
+  public static function op_template_md() {
+
+    $saved = JsonConfig::config_get('worklog-config');
+    $invoice_template_name = $invoice_data['template'] ?: current( CLI::get_template_paths() ); 
+    
+    $markdownfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md';
+    $markdowncontent = file_get_contents($markdownfile);
+        
+    print $markdowncontent;
+    
+  }    
+  public static function op_template_data() {
+
+    $saved = JsonConfig::config_get('worklog-config');
+    $invoice_template_name = $invoice_data['template'] ?: current( CLI::get_template_paths() ); 
+    
+    $yamlfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.yaml';
+    $yamlcontent = file_get_contents($yamlfile);  
+    $yamldata = YAML::decode($yamlcontent);
+    $yamldata = Format::array_flatten($yamldata);
+    $yamldata = Format::array_extrude($yamldata);
+    
+    print_r($yamldata);
+
+  }      
+  public static function op_template_maketwig() {
+
+    $saved = JsonConfig::config_get('worklog-config');
+    $invoice_template_name = $invoice_data['template'] ?: current( CLI::get_template_paths() ); 
+    
+    $markdownfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md';
+    $markdowncontent = file_get_contents($markdownfile);
+    $yamlfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.yaml';
+    $yamlcontent = file_get_contents($yamlfile);  
+    $yamldata = YAML::decode($yamlcontent);
+
+    $twig = Format::maketwig($markdowncontent,$yamldata);
+    print_r($twig);
+
+  }    
+  public static function op_template_out() {
+
+    $saved = JsonConfig::config_get('worklog-config');
+    $invoice_template_name = $invoice_data['template'] ?: current( CLI::get_template_paths() ); 
+    
+    $markdownfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.md';
+    $markdowncontent = file_get_contents($markdownfile);
+    $yamlfile = CLI::root().'/templates/'.$invoice_template_name.'/'.$invoice_template_name.'.yaml';
+    $yamlcontent = file_get_contents($yamlfile);  
+    $yamldata = YAML::decode($yamlcontent);
+
+    $twig = Format::maketwig($markdowncontent,$yamldata);
+    $data = CLI::get_filtered_data();
+    $rangedata =  WorklogSummary::summary_rangedata($data,CLI::$args);
+    $rangedata = Format::array_flatten($rangedata);
+    $rangedata = Format::array_extrude($rangedata);
+    
+    print Twig::process($twig,$rangedata)."\n";
+    
+    //print_r($twig);
+
+  }          
   public static function op_invoiceexport() {
 
     // build summary

@@ -2,6 +2,58 @@
 namespace WorklogCLI;
 class WorklogData {
 
+  public static function get_range_data($parsed,$args=array()) {
+    
+    $range = WorklogFilter::args_get_date_range($args);
+
+    $return = [
+      'range_start_date_tight' => null,
+      'range_start_date_dashed' => null,
+      'range_end_date_tight' => null,
+      'range_end_date_dashed' => null,
+      'range_end_month_tight' => null,
+      'range_end_month_dashed' => null,
+      'range_next_month_end_tight' => null,
+      'range_next_month_end_dashed' => null,
+    ];
+    
+    $fromdate = new \DateTime($range[0]);
+    $fromdate->add(new \DateInterval('PT1S')); // add 1 second to 23:59:59
+    $todate = new \DateTime($range[1]);
+    $nextmonthdate = new \DateTime($range[1]);
+    $nextmonthdate->add( new \DateInterval("P1M") );
+    
+    $return['range_start_date_tight'] =  $fromdate->format("Ymd");
+    $return['range_start_date_dashed'] =  $fromdate->format("Y-m-d");
+    $return['range_end_date_tight'] =  $todate->format("Ymd");
+    $return['range_end_date_dashed'] =  $todate->format("Y-m-d");
+    $return['range_end_month_tight'] =  $todate->format("Ym");
+    $return['range_end_month_dashed'] =  $todate->format("Y-m");
+    $return['range_end_month_text'] =  $todate->format("F Y");
+    $return['range_next_month_end_tight'] =  $nextmonthdate->format("Ymt");
+    $return['range_next_month_end_dashed'] =  $nextmonthdate->format("Y-m-t");
+    
+    return $return;
+    
+    // // // dont do this, daylight savings time makes it fail
+    // // $days = $rangediff / (60.0 * 60.0 * 24.0);
+    // $weeks = $days / 7.0;
+    // $timeline = array(
+    //   'hours'=>0.0,
+    //   'days'=>$days,
+    //   'weeks'=>Format::format_hours($weeks),
+    //   'hperday'=>0.0,
+    //   'hperweek'=>0.0,
+    // );
+    // foreach($parsed as $item) {
+    //   $hours = Format::format_hours($item['total']);
+    //   $timeline['hours'] += $hours;
+    // }
+    // $timeline['hours'] = Format::format_hours( $timeline['hours'] );
+    // $timeline['hperday'] = Format::format_hours( $timeline['hours'] / $days );
+    // $timeline['hperweek'] = Format::format_hours( $timeline['hours'] / $weeks );
+    // return $timeline;
+  }
   public static function get_entries_data2($parsed,$args=array()) {
     
     $entries = array();
@@ -165,6 +217,27 @@ class WorklogData {
     }
     return $clients;
   }
+  public static function get_clients_data2($parsed) {
+    $clients = array();
+    foreach($parsed as $item) {
+      $clientkey = Format::normalize_key( $item['client'] );      
+      $client = current( CLI::get_note_data_by_keys( 'Client-'.$clientkey ) );
+      if (empty($client)) continue;
+      $client = Format::normalize_array_keys( $client );
+      $client = Format::array_keys_remove_prefix( $client, 'client');
+      $clients[ $clientkey ] = $client;
+    }
+    return $clients;
+  }  
+  public static function get_workers_data2($parsed) {
+    $workers = CLI::get_note_data_by_keys( 'Worker-*' );
+    foreach($workers as $workerkey => &$worker) {
+      $worker = Format::normalize_array_keys( $worker );
+      $worker = Format::array_keys_remove_prefix( $worker, 'worker');
+      $workers[ $workerkey ] = $worker;
+    }
+    return $workers;
+  }    
   public static function get_worker_data($parsed,$notedata,$args) {
     
     foreach(CLI::args() as $arg) {
@@ -428,13 +501,13 @@ class WorklogData {
               if (!empty($notes['rows'])) {
                 if (!is_array($notedata[ $key ]))
                   $notedata[ $key ] = [];
-                foreach($notes['rows'] as  $noterow) {
+                foreach($notes['rows'] as $noterow) {
                   $subpair = explode(':',$noterow['text'],2);
                   $subkey = trim($subpair[0]);
                   $subvalue = trim($subpair[1]);
                   if (!empty($subvalue)) {
                     $notedata[ $key ][ $subkey ] = $subvalue;
-                  } else if (!empty($subkey)) {
+                  } else if (!empty($subkey) && empty($noterow['rows'])) {
                     $notedata[ $key ][] = $subkey;
                   }
                   if (!empty($noterow['rows'])) {

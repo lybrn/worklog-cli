@@ -4,17 +4,26 @@ class Format {
 
   public static function normalize_key($string,$keep='') {
     if (!is_string($string)) $string = "$string";
+    $keep = preg_quote($keep);
+    $keep = strtr($keep,['/'=>'\/']);
     $normalized = preg_replace('/\([^\)]*\)/i','',$string);
-    $normalized = preg_replace('/[^a-z0-9'.preg_quote($keep).']/i','',$normalized);
+    // remove all extra chars excluding keep chars
+    $normalized = preg_replace('/[^a-z0-9'.$keep.']/i','',$normalized);
+    // turn all keep chars into '-'
+    $normalized = preg_replace('/[^a-z0-9]+/i','-',$normalized);
+    // remove leading and trailing dashes
+    $normalized = trim($normalized,'-');
     $normalized = strtolower($normalized);
     return $normalized;
   }
-  public static function normalize_array_keys($array) {
+  public static function normalize_array_keys($array,$keep='',$recursive=FALSE) {
     if (!is_array($array)) return null;
     $array_normalized = [];
     foreach($array as $k=>$v) {
-      $k_normalized = Format::normalize_key($k);
+      $k_normalized = Format::normalize_key($k,$keep);
       $array_normalized[ $k_normalized ] = $v;
+      if (is_array($v) && $recursive) 
+        $array_normalized[ $k_normalized ] = Format::normalize_array_keys($v,$keep,$recursive);
     }
     return $array_normalized;
   }
@@ -51,7 +60,7 @@ class Format {
     
     return $rows_shaped;
   }  
-  public static function array_keys_remove_prefix($array,$prefixes) {
+  public static function array_keys_remove_prefix($array,$prefixes,$recursive=FALSE) {
     if (!is_array($array)) return null;
     if (empty($prefixes)) return $array;
     if (!is_array($prefixes)) $prefixes = [ $prefixes ];
@@ -65,6 +74,9 @@ class Format {
         $previous = $k_unprefixed;
       }
       $array_unprefixed[ $k_unprefixed ] = $v;
+      if (is_array($v) && $recursive) 
+        $array_unprefixed[ $k_unprefixed ] = Format::array_keys_remove_prefix($v,$prefixes,$recursive);
+      
     }
     return $array_unprefixed;
   }  
@@ -81,4 +93,59 @@ class Format {
     if (!empty($options['symbol'])) $cost = $options['symbol'].$cost;
     return $cost;
   }
+  public static function array_flatten($array,$parents=[]) {
+    
+    $return = [];
+    foreach($array as $key=>$item) {
+      if (is_array($item)) {
+        array_push($parents,$key);
+        $subitems_flattened = Format::array_flatten($item,$parents);
+        $return = array_merge($return,$subitems_flattened);
+        array_pop($parents);
+      }
+      else if (!is_numeric($key)) {
+        array_push($parents,$key);
+        $flattened_key = implode('.',$parents);
+        $return[$flattened_key] = $item;
+        array_pop($parents);
+      } 
+      else {
+        $flattened_parent_key = implode('.',$parents);
+        $return[$flattened_parent_key][$key] = $item;
+      }
+    }
+    return $return;
+    
+  }
+  public static function array_extrude($array) {
+    
+    $return = [];
+    foreach($array as $key=>$item) {
+      $parents = explode(".",$key);
+      $walk = &$return;
+      do {
+        $k = current($parents);
+        if (!array_key_exists($k,$walk)) $walk[$k] = [];
+        $walk = &$walk[$k];
+      } while(next($parents) !== FALSE);
+      if (is_array($item)) {
+        foreach($item as $ik => $iv) { $walk[$ik] = $iv;   }
+      } else {
+        $walk = $item;
+      }
+    }
+    return $return;
+    
+  }  
+  public static function maketwig($text,$data) {
+    
+    $data = Format::array_flatten($data);
+    foreach($data as $k => $value) {
+      $text = strtr($text,[
+        $value => '{{ '.$k.' }}'
+      ]);
+    }
+    return $text;
+    
+  } 
 }

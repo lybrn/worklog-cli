@@ -2,6 +2,34 @@
 namespace WorklogCLI;
 class WorklogSummary {
 
+  public static function summary_rangedata($data,$args) {
+
+    $return = array(
+      'range' => array(),
+      'client' => array(),
+      'worker' => array(),
+    );
+
+    $parsed = CLI::get_filtered_data( $args );
+    $return['range'] = WorklogData::get_range_data($parsed,$args);
+    
+    $return['range'] =  Format::array_keys_remove_prefix( $return['range'], 'range_' );
+    
+    // clients
+    $clients = WorklogData::get_clients_data2($data) ;            
+    if (count($clients) != 1) 
+      throw new Exception("Clients found: ".count($clients));
+    $return['client'] = current($clients); 
+    
+    // workers
+    $workers = WorklogData::get_workers_data2($data) ;            
+    // if (count($workers) != 1) 
+    //   throw new Exception("Workers found: ".count($workers));
+    $return['worker'] = current($workers); 
+
+    return $return;
+      
+  }      
   public static function summary_queued($parsed,$args=array()) {
                 
     $rows = array();
@@ -332,12 +360,14 @@ class WorklogSummary {
         $inbox[$uniquekey]['updated'] = $task_date;        
         $inbox[$uniquekey]['age'] = null; // time since first entry
         $inbox[$uniquekey]['stats'] = null;
+        $inbox[$uniquekey]['qline'] = !empty($task_queued) ? $task_line : null;
       } else {
         $inbox[$uniquekey]['updated'] = $task_date;
         $inbox[$uniquekey]['status'] = $task_status;
         $inbox[$uniquekey]['line'] =  $task_line;    
         $inbox[$uniquekey]['queued'] = array_merge($inbox[$uniquekey]['queued'],$task_queued);
         $inbox[$uniquekey]['sittings']++;
+        if (!empty($task_queued)) $inbox[$uniquekey]['qline'] = $task_line;
       }
     }
     
@@ -670,11 +700,11 @@ class WorklogSummary {
         $client_bill = @$client_bills[ $item['client'] ] ?: array(
           'client'=>$item['client'],
           'hours'=>0.0,
+          'sittings'=>0,
+          'titles'=>[],
           'mult'=>[],
           'total'=>0.0,
           //'projects'=>array(),
-          'sittings'=>0,
-          'titles'=>[],
         );
         if (!in_array($item['title'],$client_bill['titles'])) $client_bill['titles'][] = $item['title'];
         if (!empty($item['total'] )) $client_bill['hours'] += Format::format_hours($item['total']);
@@ -686,7 +716,7 @@ class WorklogSummary {
       }
       foreach($client_bills as &$client_bill) {
         $client_bill['total'] = '$'.Format::format_cost($client_bill['total']);
-        $client_bill['mult'] = array_sum($client_bill['mult']) / count($client_bill['mult']);
+        $client_bill['mult'] = Format::format_hours( array_sum($client_bill['mult']) / count($client_bill['mult']) );
         $client_bill['sittings'] = $client_bill['sittings']; //.' sittings';
         $client_bill['titles'] = count($client_bill['titles']);
         // $client_bill['projects'] = count($client_bill['projects']); //.' projects';
