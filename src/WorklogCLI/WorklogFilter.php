@@ -167,6 +167,27 @@ class WorklogFilter {
   }
   public static function args_get_categories($data,$args) {
     $category_list = WorklogFilter::category_list($data);
+    
+    // check if each category has client data associated
+    $clientnames_list = [];
+    foreach($category_list as $category) {
+      try {
+        $client_data = CLI::get_note_data_normalized("client-".$category,'client');
+        if (!empty($client_data)) {
+          $client_data = current($client_data);
+          $full_name  = @$client_data['full-name']  ?: null;
+          $short_name = @$client_data['short-name'] ?: null;
+          $tight_name = @$client_data['tight-name'] ?: null;
+          $cli_name = @$client_data['cli-name'] ?: null;
+          if (!empty($full_name)) $clientnames_list[ Format::normalize_key($full_name) ] = $category;
+          if (!empty($short_name)) $clientnames_list[ Format::normalize_key($short_name) ] = $category;
+          if (!empty($tight_name)) $clientnames_list[ Format::normalize_key($tight_name) ] = $category;
+          if (!empty($cli_name)) $clientnames_list[ Format::normalize_key($cli_name) ] = $category;
+        }
+      } catch (Exception $e) {}
+      
+    }
+        
     $categories = [];
     foreach($args as $arg) {
       // dont consider args that are valid datetime strings (like "today")
@@ -175,6 +196,9 @@ class WorklogFilter {
       $arg = WorklogFilter::normalize($arg);
       if (in_array($arg,$category_list)) {
         $categories[] = $arg;
+      }
+      else if (!empty($clientnames_list[$arg])) {
+        $categories[] = $clientnames_list[$arg] ;
       }
     }      
     return $categories;

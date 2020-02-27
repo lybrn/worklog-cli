@@ -2,7 +2,7 @@
 namespace WorklogCLI;
 class Format {
 
-  public static function normalize_key($string,$keep='') {
+  public static function normalize_key($string,$keep='',$reduceto=FALSE) {
     if (!is_string($string)) $string = "$string";
     $keep = preg_quote($keep);
     $keep = strtr($keep,['/'=>'\/']);
@@ -10,7 +10,7 @@ class Format {
     // remove all extra chars excluding keep chars
     $normalized = preg_replace('/[^a-z0-9'.$keep.']/i','',$normalized);
     // turn all keep chars into '-'
-    $normalized = preg_replace('/[^a-z0-9]+/i','-',$normalized);
+    if (!empty($reduceto)) $normalized = preg_replace('/[^a-z0-9]+/i',$reduceto,$normalized);
     // remove leading and trailing dashes
     $normalized = trim($normalized,'-');
     $normalized = strtolower($normalized);
