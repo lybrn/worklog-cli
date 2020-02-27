@@ -858,7 +858,7 @@ class CLI {
     //   foreach($data as $k=>$v) { $data[$k][$assignkey] = $k; }
 
     $assignkey = Format::normalize_key($assignkey,'-_ ./','-');
-    $data = Format::normalize_array_keys($data,'-_ ./',TRUE);
+    $data = Format::normalize_array_keys($data,'-_ ./','-',TRUE);
     
     if ($assignkey) {
       $data = Format::array_keys_remove_prefix($data,$assignkey.'-',TRUE);

@@ -16,14 +16,14 @@ class Format {
     $normalized = strtolower($normalized);
     return $normalized;
   }
-  public static function normalize_array_keys($array,$keep='',$recursive=FALSE) {
+  public static function normalize_array_keys($array,$keep='',$reduceto=FALSE,$recursive=FALSE) {
     if (!is_array($array)) return null;
     $array_normalized = [];
     foreach($array as $k=>$v) {
-      $k_normalized = Format::normalize_key($k,$keep);
+      $k_normalized = Format::normalize_key($k,$keep,$reduceto);
       $array_normalized[ $k_normalized ] = $v;
       if (is_array($v) && $recursive) 
-        $array_normalized[ $k_normalized ] = Format::normalize_array_keys($v,$keep,$recursive);
+        $array_normalized[ $k_normalized ] = Format::normalize_array_keys($v,$keep,$reduceto,$recursive);
     }
     return $array_normalized;
   }
