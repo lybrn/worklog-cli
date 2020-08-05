@@ -1,0 +1,94 @@
+# Invoice: {{ invoice.period }} <br/> Work done for {{ client.shortname }}  
+
+---
+
+| Invoice | Details           
+|-|
+{% if invoice.number and not invoice.hidenumber %}
+| Invoice number | {{ invoice.number }}  
+{% endif %}
+| Invoice date   | {{ invoice.date }}  
+| Payment due    | {{ invoice.due }}  
+| Total amount   | CA${{ pricing.total }}  
+
+---
+
+**{{ worker.fullname }}**  
+{{ worker.address }}  
+{{ worker.email }}, {{ worker.phone }}  
+
+**{{ client.fullname }}**  
+{% if client.contactname %}c/o {{ client.contactname }},  {% endif %}
+{{ client.address }}  
+{{ client.contactemail }}{% if client.contactphone %}, {{ client.contactphone }}{% endif %}  
+
+---
+
+{% if not invoice.hideperiod %}
+
+> {{ invoice.period }} work done for {{ client.shortname }}  
+> **${{ pricing.total }}**  
+
+{% else %}
+
+> Commission from {{ client.shortname }}  
+> **${{ pricing.total }}**  
+
+{% endif %}
+
+---
+
+{% for project in projects %}
+### {{ project.name }}
+
+| Task                                               | Status               | Hours             
+|:---------------------------------------------------|:---------------------|:------------------
+{% for task in project.tasks %}
+| {{ task.title                                   }} | {{ task.status    }} | ${{ task.subtotal }}  
+{% endfor %}
+
+{% endfor %}
+
+---
+
+> | Subtotal {% if client.taxname %} | Tax Rate | Taxes {% endif %} | Total
+> |-
+> | CA${{ pricing.subtotal }}  {% if client.taxname %} | {{ client.taxname }} *#{{ worker.taxaccount }}* | CA${{ pricing.tax }} {% endif %} | CA${{ pricing.total }}
+  
+---  
+
+> **CA${{ pricing.total }}**
+>                                                            
+> Payable by {{ worker.payableby }}  
+> {{ worker.fullname }} - {{ worker.phone }} - {{ worker.email }}  
+
+---  
+
+## Details
+
+---
+
+| Date             | Time Entry Notes             | Hours             | Rate             | Line Total
+|:-----------------|:-----------------------------|:------------------|:-----------------|:------------------
+{% for entry in entries %}
+| {{ entry.date }} |  {{ entry.title }} ({{ entry.project }}, {{ entry.task }}): {{ entry.notes }} | {{ entry.hours }} | {{ entry.rate }} | {{ entry.total }}
+{% endfor %}
+
+---
+
+{% if client.terms %}
+
+### Terms
+
+*{{ client.terms }}*
+
+{% endif %}
+---
+
+{% if client.note %}
+
+### Note
+
+*{{ client.note }}*
+
+{% endif %}

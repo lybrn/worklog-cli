@@ -61,7 +61,7 @@
 | Date             | Time Entry Notes             | Hours             | Rate             | Line Total
 |:-----------------|:-----------------------------|:------------------|:-----------------|:------------------
 {% for entry in entries %}
-| {{ entry.date }} |  {{ entry.title }} ({{ entry.project }}, {{ entry.task }}): {{ entry.notes }} | {{ entry.hours }} | {{ entry.rate }} | {{ entry.total }}
+| {{ entry.date }} |  {{ entry.title|escape }}: {{ entry.notes|escape }} | {{ entry.hours }} | {{ entry.rate }} | {{ entry.total }}
 {% endfor %}
 
 ---

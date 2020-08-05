@@ -1,4 +1,7 @@
 #! /usr/bin/php
 <?php
 require_once __DIR__."/vendor/autoload.php";
-\WorklogCLI\CLI::cli($argv);
+
+//\WorklogCLI\CLI::cli($argv);
+
+\Lybrnth\Cli::cli(__DIR__."/cli.yaml");

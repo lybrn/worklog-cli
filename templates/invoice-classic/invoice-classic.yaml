@@ -1,0 +1,49 @@
+invoice:
+  period:
+  number:
+  date:
+  due:
+worker:
+  fullname:
+  address:
+  email:
+  phone:
+  taxaccount:
+  payableby:
+client:
+  shortname:
+  fullname:
+  contactname:
+  address:
+  contactemail:
+  contactphone:
+  rate:
+  taxname:
+pricing:
+  total:
+  hours:
+  subtotal:
+  tax:
+timeline:
+  hperweek:
+  weeks:
+  days:
+projects:
+- project:
+    name:
+    hours:
+    tasks:
+    - task:
+        title:
+        status:
+        hours:
+entries:
+- entry:
+    date:
+    title:
+    project:
+    task:
+    notes:
+    hours:
+    rate:
+    total:

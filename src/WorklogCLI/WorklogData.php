@@ -1,7 +1,10 @@
 <?php
 namespace WorklogCLI;
+use Lybrnth\Mdon;
 class WorklogData {
 
+  public static $storage = [];
+  
   public static function get_range_data($parsed,$args=array()) {
     
     $range = WorklogFilter::args_get_date_range($args);
@@ -471,20 +474,31 @@ class WorklogData {
   public static function get_titles($data) {
 
     $worklog_titles = array();
-    foreach($data as $data=>$item) {
-      $cat = array();
-      //$cat['client'] = $item['client'];
-      $cat['title'] = $item['title'];;
-      $worklog_categories[ implode('-',$cat) ]= $cat;
+    foreach($data as $index=>$item) {
+      
+      $sortkey = [];
+      $sortkey['title'] = $item['title'];
+      $sortkey['client'] = $item['client'];
+      $sortkey = implode('-',$sortkey);
+      
+      $count[ $sortkey ]++;
+      
+      $row = [];
+      $row['line'] = $item['line_number'];
+      $row['title'] = $item['title'];
+      $row['sittings'] = $count[ $sortkey ];
+      $row['project'] = $item['client-project'];
+            
+      $worklog_titles[ $sortkey ]= $row;
     }
-    ksort($worklog_categories);
-    $rows = array_values($worklog_categories);
+    ksort($worklog_titles);
+    $rows = array_values($worklog_titles);
     return $rows;
 
   }
   public static function get_note_data($filepaths,$options=array()) {
     
-    $parsed = MDON::parse_files($filepaths);
+    $parsed = Mdon::decode_files($filepaths);
     $notedata = array();
     
     foreach($parsed as $day) {
@@ -539,7 +553,7 @@ class WorklogData {
   }  
   public static function get_data($filepaths,$options=array()) {
 
-    $parsed = MDON::parse_files($filepaths);
+    $parsed = Mdon::decode_files($filepaths);
     $output = array();
     $category_info = array();
     $all_categories = array();
@@ -565,6 +579,10 @@ class WorklogData {
           $cat_line_number = $category['linenum'];
           $cleancategory = WorklogData::line_clean_brackets($category['text']);
           $all_categories[ $cleancategory ] = $cleancategory;
+          self::$storage[] = [ 
+            'category' => $cleancategory,
+            'worklog/category' => true,
+          ];
           if (!empty($options['category']) && !WorklogData::time_filter_compare($category['text'],$options['category'])) {
             continue;
           }
@@ -588,6 +606,8 @@ class WorklogData {
                 continue;
               }
               $queued = array();
+              $stars = array();
+              $message_open = false;
               $output_notes = array();
               $clean_notes = array();
               $time_brackets = array();
@@ -610,6 +630,42 @@ class WorklogData {
                       'category' => $queued_category,
                       'title' => $queued_title,
                       'brackets' => $queued_brackets,
+                    ];
+                  }
+                  if ($notes['style']=='*') {
+                    $stars_text = $notes['text'];
+                    $star_is_message = 
+                      stripos($stars_text,'message')!==false || 
+                      stripos($stars_text,'reply')!==false || 
+                      stripos($stars_text,'response')!==false || 
+                      stripos($stars_text,'email')!==false
+                    ;
+                    $stars_text = WorklogData::line_clean_brackets($stars_text);
+                    //$stars_text = rtrim($stars_text,'- ');
+                    if (!empty($stars_text) && $star_is_message) {                      
+                      $stars[] = [ 
+                        'text' => $stars_text,
+                        'line_number' => $notes['linenum'],
+                        //'category' => $queued_category,
+                        //'title' => $queued_title,
+                        //'brackets' => $queued_brackets,
+                      ];
+                      $message_open = true;
+                    } else {
+                      $message_open = false;
+                    }
+                    
+                  }
+                  if ($notes['style']=='[indent]') {
+                    
+                    $indent_text = $notes['text'];
+                    //print $indent_text."\n";
+                    $stars[] = [ 
+                      'text' => $indent_text,
+                      'line_number' => $notes['linenum'],
+                      //'category' => $queued_category,
+                      //'title' => $queued_title,
+                      //'brackets' => $queued_brackets,
                     ];
                   }
                   if ($notes['style']!='+') continue;
@@ -640,13 +696,15 @@ class WorklogData {
               $category_taxratio = (float) trim($category_taxpercent,'%') / 100.0;
               $category_multiplier = WorklogData::brackets_get_multiplier($category_brackets);
               if (empty($category_multiplier)) $category_multiplier = '1.0';
-
               $title_brackets = WorklogData::line_get_brackets($tasktitle);
+              $title_precolon = WorklogData::line_get_precolon($tasktitle);
               $title_multiplier = WorklogData::brackets_get_multiplier($title_brackets);
               if (empty($title_multiplier)) $title_multiplier = '1.0';
               $rate = WorklogData::brackets_get_rate($category_brackets);
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
+              $title_precolon = WorklogData::array_explode_values('/',$title_precolon);
+              $title_brackets = array_unique(array_merge($title_brackets,$title_precolon))    ;
               $title_fixedcost = WorklogData::brackets_get_cost($title_brackets);
               $task_brackets = WorklogData::line_get_brackets($taskline);
               $unknown_brackets = [];
@@ -737,12 +795,20 @@ class WorklogData {
               
               $client_project_details = current( CLI::get_note_data_by_keys( 'Project-'.$entry_category.'-'.$client_project ) );
               $client_project_details = Format::array_keys_remove_prefix( Format::normalize_array_keys( $client_project_details ),'project');
+                            
               $project_rate = null;
               if (!empty($client_project_details['name'])) $client_project = $client_project_details['name'];
               if (!empty($client_project_details['number'])) $client_project .= ' '.$client_project_details['number'];
               if (!empty($client_project_details['rate'])) $project_rate = Format::format_cost( $client_project_details['rate'] ); 
               
-              
+              $client_default_project = CLI::get_note_data_by_keys( 'Default-Project-'.$entry_category );
+              $client_default_project = @current(current($client_default_project));
+              $client_default_project_details = current( CLI::get_note_data_by_keys( 'Project-'.$entry_category.'-'.$client_default_project ) );
+              $client_default_project_details = Format::array_keys_remove_prefix( Format::normalize_array_keys( $client_default_project_details ),'project');
+
+              if (!empty($client_default_project_details['name'])) $client_default_project = $client_default_project_details['name'];
+              if (!empty($client_default_project_details['number'])) $client_default_project .= ' '.$client_default_project_details['number'];
+              // if (!empty($client_default_project_details['rate'])) $project_rate = Format::format_cost( $client_default_project_details['rate'] ); 
               
               if (!empty($category_projects)) { $taskproject = $client_project; }
               if (!empty($category_tasks)) $tasktask = $client_task;
@@ -759,9 +825,9 @@ class WorklogData {
               $entry['note'] = $taskcleannote;
               $entry['notes'] = $clean_notes;
               $entry['queued'] = $queued;
+              $entry['stars'] = $stars;
               $entry['category_info'] = $category_info[ $cleancategory ];
               $entry['client'] = $entry_category;
-
               $entry['hours'] = $hours;
               $entry['multiplier'] = $multiplier; 
               $entry['category_multiplier'] = $category_multiplier; 
@@ -774,7 +840,7 @@ class WorklogData {
               $entry['tax'] = $entry['subtotal'] * $entry['taxratio'];
               
               $entry['project'] = $taskproject;
-              $entry['client-project'] = $client_project;
+              $entry['client-project'] = $client_project ?: ( $client_default_project ?: null );
               $entry['client-task'] = $client_task;
               $entry['client-status'] = $client_status;
               $entry['client-free-brackets'] = $client_free_brackets;
@@ -785,7 +851,7 @@ class WorklogData {
               $entry['task'] = $tasktask;
               $entry['task-fixedcost'] = $taskfixedcost;
               $entry['status'] = $taskstatus;
-              $entry['project'] = $taskproject;
+              $entry['project'] = $taskproject ?: ( $client_default_project ?: null );
               $entry['total'] = $hours_multiplied;
               $entry['$'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
               if (!empty($cost_brackets))  {
@@ -798,6 +864,7 @@ class WorklogData {
               $entry['category_brackets'] = $category_brackets;
               $entry['time_brackets'] = $time_brackets;
               $entry['title_brackets'] = $title_brackets;
+              $entry['title_precolon'] = $title_precolon;
               $entry['task_brackets'] = $task_brackets;
               $entry['unknown_brackets'] = $unknown_brackets;
               $entry['brackets'] = $all_brackets;
@@ -805,6 +872,8 @@ class WorklogData {
               $entry['day_line_number'] = $day_line_number;
               $entry['cat_line_number'] = $cat_line_number;
               $entry['line_number'] = $task_line_number;
+              $entry['worklog/entry'] = true;
+              self::$storage[] = $entry;
 
               $all_titles[ $tasktitle ] = $tasktitle;
 
@@ -868,6 +937,14 @@ class WorklogData {
     return $return;
 
   }
+  public static function line_get_precolon($text) {
+
+    $matches = array();
+    preg_match_all('/^[^a-zA-Z0-9:]*([a-zA-Z0-9][^:]+):.*$/i',$text,$matches);
+    $return = @is_array($matches[1]) ? $matches[1] : array();
+    return $return;
+
+  }  
   public static function brackets_get_multiplier($brackets) {
 
     foreach($brackets as $bracket) {

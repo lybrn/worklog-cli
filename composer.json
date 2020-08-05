@@ -3,17 +3,28 @@
     "description": "A PHP client for the worklog files",
     "type": "library",
     "keywords": ["worklog", "client"],
-    "homepage": "https://github.com/hellolindsay/freshbooks-cli",
+    "homepage": "https://github.com/hellolindsay/worklog-cli",
     "license": "MIT",
     "require": {
         "php": ">=5.4.0",
         "mustangostang/spyc": "^0.6.2",
         "twig/twig": "~1.0",
-        "erusev/parsedown": "^1.6"
+        "lybrnth/stub-php": "0.0.1",
+        "erusev/parsedown": "^1.6",
+        "lybrnth/config-php": "*@dev",
+        "lybrnth/storage-php": "*@dev",
+        "lybrnth/cli-php": "*@dev",
+        "lybrnth/mdon-php": "*@dev",
+        "lybrnth/lypath-php": "*@dev"
     },
+    "repositories": [{
+        "type": "path",
+        "url": "packages/*"
+    }],
     "autoload": {
         "psr-0": {
             "WorklogCLI\\": "src/"
         }
     }
+    
 }

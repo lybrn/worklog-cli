@@ -4,6 +4,7 @@ class WorklogFilter {
 
   public static function filter_parsed($parsed,$args) {
     $options = WorklogFilter::get_options($parsed,$args);
+    
     if (empty($options)) return $parsed;
     $filtered = array();
     
@@ -167,11 +168,11 @@ class WorklogFilter {
   }
   public static function args_get_categories($data,$args) {
     $category_list = WorklogFilter::category_list($data);
-    
     // check if each category has client data associated
     $clientnames_list = [];
     foreach($category_list as $category) {
       try {
+        if (empty($category)) continue;
         $client_data = CLI::get_note_data_normalized("client-".$category,'client');
         if (!empty($client_data)) {
           $client_data = current($client_data);
@@ -257,6 +258,7 @@ class WorklogFilter {
     $worklog_categories = array();
     if (is_array($data)) foreach($data as $data => $item) {
       $key = WorklogFilter::normalize($item['client']);
+      if (empty($key)) continue;
       $worklog_categories[ $key  ] = $key;
     }
     ksort($worklog_categories);

@@ -1,0 +1,77 @@
+# Invoice: {{ invoice.period }} <br/> Work done for {{ client.shortname }}  
+
+---
+
+| Invoice | Details           
+|-|
+| Invoice number | {{ invoice.number }}  
+| Invoice date   | {{ invoice.date }}  
+| Payment due    | {{ invoice.due }}  
+| Total amount   | CA${{ pricing.total }}  
+
+---
+
+**{{ worker.fullname }}**  
+{{ worker.address }}  
+{{ worker.email }}, {{ worker.phone }}  
+
+**{{ client.fullname }}**  
+c/o {{ client.contactname }}
+{{ client.address }}
+{{ client.contactemail }}, {{ client.contactphone }}  
+
+---
+
+> {{ invoice.period }} work done for {{ client.shortname }}  
+> **{{ pricing.hours }} hours**  
+> *Average: {{ timeline.hperweek }} hours weekly — {{ timeline.weeks }} weeks ({{ timeline.days }} days)*  
+
+---
+
+{% projects.project %}
+### {{ project.name }} work - {{ project.hours }} hours
+
+| Task                                               | Status               | Hours
+|:---------------------------------------------------|:---------------------|:------------------|
+{% project.tasks.task %}
+| {{ task.title                                   }} | {{ task.status    }} | {{ task.hours }}
+{%}
+
+{%}
+
+---
+
+> | Hours | Rate | Subtotal | Tax Rate | Taxes | Total
+> |-
+> | {{ pricing.hours }} hours | CA${{ client.rate }} | CA${{ pricing.subtotal }} | {{ client.taxname }} *#{{ worker.taxaccount }}* | CA${{ pricing.tax }} | CA${{ pricing.total }}
+  
+---  
+
+> **CA${{ pricing.total }}**
+>                                                            
+> Payable by {{ worker.payableby }}  
+> {{ worker.fullname }} - {{ worker.phone }} - {{ worker.email }}  
+
+---  
+
+## Details
+
+---
+
+| Date             | Time Entry Notes             | Hours             | Rate             | Line Total
+|:-----------------|:-----------------------------|:------------------|:-----------------|:------------------
+{% entries %}
+| {{ entry.date }} |  {{ entry.title }} ({{ entry.project }}, {{ entry.task }}): {{ entry.notes }} | {{ entry.hours }} | {{ entry.rate }} | {{ entry.total }}
+{%}
+
+---
+
+### Terms
+
+*{{ client.terms }}*
+
+---
+
+### Note
+
+*{{ client.note }}*

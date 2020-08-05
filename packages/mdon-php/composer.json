@@ -1,0 +1,12 @@
+{
+    "name": "lybrnth/mdon-php",
+    "require": {
+      "symfony/yaml" : "^3.0",
+      "erusev/parsedown": "^1.6"
+    },
+    "autoload": {
+        "psr-0": {
+            "Lybrnth\\": "src/"
+        }
+    }
+}

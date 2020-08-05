@@ -2,8 +2,8 @@
 namespace WorklogCLI;
 class CLI {
 
-  private static $original_args = [];
-  private static $args = [];
+  public static $original_args = [];
+  public static $args = [];
   
   public static function original_args() {
     return CLI::$original_args;
@@ -36,14 +36,14 @@ class CLI {
       if ($arg_normalized==$arg_to_remove_normalized) unset(CLI::$args[$i]);
     }
   }
-  public static function cli($argv) {
+  public static function cli($args) {
 
     // set timezone
     date_default_timezone_set('America/Montreal');
 
     // process arguments
-    $args = array_slice($argv,1);
-    $op = array_shift($args);
+    //$args = array_slice($argv,1);
+    //$op = array_shift($args);
 
     // set static args variable
     CLI::$original_args = $args;
@@ -56,19 +56,19 @@ class CLI {
       CLI::add_args( $invoice_args );
     }
     
-    // call method for operation if there is one
-    $op_method = 'op_'.strtr($op,'-','_');
-    if (method_exists(get_called_class(),$op_method)) {
-      try {
-        call_user_func_array(get_called_class().'::'.$op_method,array());
-      } catch(Exception $e) {
-        print Output::border_box( $e->getMessage() );
-      }
-      return;
-    }
+    // // call method for operation if there is one
+    // $op_method = 'op_'.strtr($op,'-','_');
+    // if (method_exists(get_called_class(),$op_method)) {
+    //   try {
+    //     call_user_func_array(get_called_class().'::'.$op_method,array());
+    //   } catch(Exception $e) {
+    //     print Output::border_box( $e->getMessage() );
+    //   }
+    //   return;
+    // }
     
     // if we get this far, show usage info
-    CLI::op_usage();
+    // CLI::op_usage();
 
   }
   public static function showbox() {

@@ -8,6 +8,7 @@ class WorklogSummary {
       'range' => array(),
       'client' => array(),
       'worker' => array(),
+      'pricing' => array(),
     );
 
     $parsed = CLI::get_filtered_data( $args );
@@ -20,6 +21,9 @@ class WorklogSummary {
     if (count($clients) != 1) 
       throw new Exception("Clients found: ".count($clients));
     $return['client'] = current($clients); 
+    
+    // pricing
+    $return['pricing'] = WorklogData::get_pricing_data2($data) ; 
     
     // workers
     $workers = WorklogData::get_workers_data2($data) ;            
@@ -815,6 +819,37 @@ class WorklogSummary {
       return $rows;
       
     }   
+    public static function summary_messages($parsed,$args=array()) {
+            
+      $rows = array();
+      foreach($parsed as $item) {
+                
+        // $row = array();
+        // $row['line'] = $item['line_number'];
+        // $row['client'] = $item['client'];
+        // $row['text'] = '### '.$item['title'];
+        // $rows[] = $row;
+        
+        foreach($item['stars'] as $star_data) {
+          $row = array();
+          $row['line'] = $star_data['line_number'];
+          $row['client'] = $item['client'];
+          $row['text'] = '* '.$star_data['text'];
+          $rows[] = $row;
+          
+          $star_line_number = $star_data['line_number'];
+        }
+
+        // $row = array();
+        // $row['line'] = $star_line_number+1;
+        // $row['client'] = $item['client'];
+        // $row['text'] = ' ';
+        // $rows[] = $row;
+      }
+      $rows = array_values($rows);
+      return $rows;
+      
+    }       
     public static function summary_markdown($parsed,$args=array()) {
             
       $current_day = null;

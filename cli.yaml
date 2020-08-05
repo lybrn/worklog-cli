@@ -1,0 +1,24 @@
+cli:
+  billing: \WorklogCLI\Cli\CliBilling
+  brackets: \WorklogCLI\Cli\CliBrackets 
+  cats: \WorklogCLI\Cli\CliCategories 
+  check-days: \WorklogCLI\Cli\CliCheckDays
+  entries: \WorklogCLI\Cli\CliEntries 
+  inbox: \WorklogCLI\Cli\CliInbox 
+  invoice2export: \WorklogCLI\Cli\CliInvoice2Export 
+  invoice2: \WorklogCLI\Cli\CliInvoice2 
+  mdon-decode: \WorklogCLI\Cli\CliMdonDecode
+  mdon2-decode: \WorklogCLI\Cli\CliMdon2Decode
+  messages: \WorklogCLI\Cli\CliMessages
+  notedata: \WorklogCLI\Cli\CliNoteData 
+  notedatatable: \WorklogCLI\Cli\CliNoteDataTable 
+  notes: \WorklogCLI\Cli\CliNotes 
+  statuses: \WorklogCLI\Cli\CliStatuses 
+  template-out: \WorklogCLI\Cli\CliTemplateOut 
+  times: \WorklogCLI\Cli\CliTimes
+  titles: \WorklogCLI\Cli\CliTitles 
+  totals: \WorklogCLI\Cli\CliTotals 
+  usage: \Lybrnth\Cli\Usage
+  worklog-decode: \WorklogCLI\Cli\CliWorklogDecode
+  lypath: \Lybrnth\LyPath\Cli\CliLyPath
+  

@@ -1,0 +1,26 @@
+client:
+  tightname: XNDP
+  shortname: X NDP
+  fullname: Xample NDP
+  contactfirstname: Xavier
+  taxpercent: 10%
+payment:
+  total: "1433.33"
+  number: 01110 
+  date: 22221111
+deposit:
+  date: 22221212
+invoice:
+  date: 22221111
+  seq: 000
+range:
+  end_month_dashed: 2222-ZZ
+  end_month_tight: 2222ZZ
+  end_month_text: October 2222
+  end_date_tight: 22221010
+  end_date_dashed: 2222-10-10
+  next_month_end_dashed: 2222-DD-DD
+  next_month_end_tight: 2222DDDD
+worker:
+  fullname: Lindsay Bernath
+  initials: LB

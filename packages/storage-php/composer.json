@@ -1,0 +1,11 @@
+{
+    "name": "lybrnth/storage-php",
+    "require": {
+      "symfony/yaml" : "^3.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "Lybrnth\\": "src/"
+        }
+    }
+}
