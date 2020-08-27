@@ -703,15 +703,17 @@ class WorklogSummary {
       foreach($parsed as $item) {
         $client_bill = @$client_bills[ $item['client'] ] ?: array(
           'client'=>$item['client'],
-          'hours'=>0.0,
+          'effort'=>0.0,
           'sittings'=>0,
           'titles'=>[],
           'mult'=>[],
+          'hours'=>0.0,
           'total'=>0.0,
           //'projects'=>array(),
         );
         if (!in_array($item['title'],$client_bill['titles'])) $client_bill['titles'][] = $item['title'];
         if (!empty($item['total'] )) $client_bill['hours'] += Format::format_hours($item['total']);
+        if (!empty($item['hours'] )) $client_bill['effort'] += Format::format_hours($item['hours']);
         if (!empty($item['multiplier'] )) $client_bill['mult'][] = $item['multiplier'];
         if (!empty($item['$'])) $client_bill['total'] += Format::format_cost($item['$']);
         $client_bill['sittings'] += 1;

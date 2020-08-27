@@ -486,7 +486,7 @@ class WorklogData {
       $row = [];
       $row['line'] = $item['line_number'];
       $row['title'] = $item['title'];
-      $row['sittings'] = $count[ $sortkey ];
+      $row['sittings'] = $count[ $sortkey ];  
       $row['project'] = $item['client-project'];
             
       $worklog_titles[ $sortkey ]= $row;

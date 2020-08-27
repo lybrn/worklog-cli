@@ -172,8 +172,9 @@ class Output {
       if (is_array($rows)) foreach($rows as $cols) { 
         foreach($all_keys as $key) {
           $value = array_key_exists($key, $cols) ? $cols[$key] : '';
-          if (is_numeric($value)) {  
-            $totals[$key] += $value;
+          $check_numeric = preg_replace('/[\$,]/','',$value);
+          if (is_numeric($check_numeric)) {  
+            $totals[$key] += $check_numeric;
             $dotbroken = explode('.',$value);
             $value_decimals = count($dotbroken)==2 ? mb_strlen(end(explode('.',$value))) : 0;
             if (empty($decimals[$key]) || $value_decimals > $decimals[$key]) 

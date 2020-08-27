@@ -19,6 +19,7 @@ class CliBilling {
     $rows = WorklogSummary::summary_billing($data,CLI::args());
     $income = 0;
     $hours = 0;
+    $effort = 0;
     foreach($data as $row) {
       $income += $row['$'];
       $started_at = strtotime($row['started_at']);
@@ -27,6 +28,7 @@ class CliBilling {
       if (empty($latest) || $started_at > $latest)
         $latest = $started_at;
       $hours += $row['total'];
+      $effort += $row['hours'];
     }
     if (empty($fromdate)) $fromdate = $earliest;
     if (empty($todate)) $todate = $latest;
@@ -38,12 +40,12 @@ class CliBilling {
       $date_title = date('Y-m-d',$fromdate)." to ".date('Y-m-d',$todate);
     }
     $normalized_hours = Format::format_hours($income / 80.0); 
-    $output_title = $date_title." /// $hours /// \$$income -- $normalized_hours @ $80\n";
+    $output_title = $date_title." /// Effort: $effort /// \$$income: $normalized_hours @ $80\n";
     $output_title .=  str_repeat('=',strlen($date_title))."\n\n";
 
     // output
     $output = $output_title;
-    $output .= Output::whitespace_table($rows);
+    $output .= Output::whitespace_table($rows,TRUE);
     CLI::out( $output );
 
 
