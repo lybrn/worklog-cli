@@ -556,6 +556,7 @@ class WorklogData {
     $parsed = Mdon::decode_files($filepaths);
     $output = array();
     $category_info = array();
+    $deliverable_info = array();
     $all_categories = array();
     $all_titles = array();
 
@@ -702,6 +703,7 @@ class WorklogData {
               if (empty($title_multiplier)) $title_multiplier = '1.0';
               $rate = WorklogData::brackets_get_rate($category_brackets);
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
+              $title_clean =  WorklogData::line_clean_brackets($tasktitle);
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
               $title_precolon = WorklogData::array_explode_values('/',$title_precolon);
               $title_brackets = array_unique(array_merge($title_brackets,$title_precolon))    ;
@@ -771,6 +773,7 @@ class WorklogData {
               $tasktask = WorklogData::brackets_match_item($title_brackets,$tasks);
               $statuses = @$category_info[ $cleancategory ]['statuses'] ?: array();
               $taskstatus = WorklogData::brackets_match_item($title_brackets,$statuses);
+              
               // $taskfixedcost = WorklogData::brackets_get_cost($title_brackets);
                 
               $free_brackets = WorklogData::brackets_remove_item($free_brackets,array(
@@ -793,6 +796,13 @@ class WorklogData {
                 $client_rate,
               ));
               
+              if (!empty($client_status)) {
+                $deliverable_info[ $title_clean ]['status'] = @$client_status ?: null;                
+              } else {
+                $client_status = @$deliverable_info[ $title_clean ]['status'] ?: null;                
+              }
+
+
               $client_project_details = current( CLI::get_note_data_by_keys( 'Project-'.$entry_category.'-'.$client_project ) );
               $client_project_details = Format::array_keys_remove_prefix( Format::normalize_array_keys( $client_project_details ),'project');
                             
