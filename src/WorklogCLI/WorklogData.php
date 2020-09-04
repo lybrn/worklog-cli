@@ -698,13 +698,13 @@ class WorklogData {
               $category_multiplier = WorklogData::brackets_get_multiplier($category_brackets);
               if (empty($category_multiplier)) $category_multiplier = '1.0';
               $title_brackets = WorklogData::line_get_brackets($tasktitle);
-              $title_precolon = WorklogData::line_get_precolon($tasktitle);
               $title_multiplier = WorklogData::brackets_get_multiplier($title_brackets);
               if (empty($title_multiplier)) $title_multiplier = '1.0';
               $rate = WorklogData::brackets_get_rate($category_brackets);
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
               $title_clean =  WorklogData::line_clean_brackets($tasktitle);
               $title_brackets = WorklogData::array_explode_values('/',$title_brackets);
+              $title_precolon = WorklogData::line_get_precolon($title_clean);
               $title_precolon = WorklogData::array_explode_values('/',$title_precolon);
               $title_brackets = array_unique(array_merge($title_brackets,$title_precolon))    ;
               $title_fixedcost = WorklogData::brackets_get_cost($title_brackets);
