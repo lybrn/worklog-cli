@@ -751,6 +751,7 @@ class WorklogSummary {
         $row = array();
         $row['text'] = $item['title'];
         $row['client'] = $item['client'];
+        $row['project'] = $item['project'];
         $row['hours'] = Format::format_hours($item['hours']);
         $row['time_brackets'] = $item['time_brackets'];
         $row['???'] = $item['unknown_brackets'];
