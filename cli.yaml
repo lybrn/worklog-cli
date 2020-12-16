@@ -3,6 +3,7 @@ cli:
   brackets: \WorklogCLI\Cli\CliBrackets 
   cats: \WorklogCLI\Cli\CliCategories 
   check-days: \WorklogCLI\Cli\CliCheckDays
+  config: \WorklogCLI\Cli\CliConfig
   entries: \WorklogCLI\Cli\CliEntries 
   inbox: \WorklogCLI\Cli\CliInbox 
   invoice2export: \WorklogCLI\Cli\CliInvoice2Export 
