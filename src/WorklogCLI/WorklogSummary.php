@@ -497,6 +497,10 @@ class WorklogSummary {
       $task_summary['total'] = $task_total;
       $task_summary['line'] =  $task_line;
       
+      // $task_summary['day_yyyymmdd'] = $item['day_yyyymmdd'];
+      // $task_summary['category_yyyymmdd'] = $item['category_yyyymmdd'];
+      // $task_summary['title_yyyymmdd'] = $item['title_yyyymmdd'];
+
       $sortkey = [];
       $sortkey[] = $first_line_number[ $first_line_key ];
       $sortkey[] = $task_client;

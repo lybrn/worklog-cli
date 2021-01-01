@@ -71,6 +71,7 @@ class WorklogData {
       $entry = array();
       $entry['started_at'] = $item['started_at'];
       $entry['date'] = date('Y-m-d',strtotime($item['started_at']));
+      $entry['month'] = date('Y-m',strtotime($item['started_at']));
       $entry['project'] = $project;
       $entry['task'] = $task;
       $entry['title'] = $title;
@@ -562,10 +563,13 @@ class WorklogData {
 
     foreach($parsed as $r => $row) {
       $day_text = WorklogData::line_clean_brackets($row['text']);
+      $day_brackets = WorklogData::line_get_brackets($row['text']); 
+      $day_yyyymmdd = WorklogData::brackets_get_yyyymmdd($day_brackets);
       if (!empty($day_text)) $parsed[$r]['day_text'] = $day_text;
-      $timestamp = @strtotime($day_text);
-      if (!empty($timestamp)) $parsed[$r]['timestamp'] = $timestamp;
-      $parsed[$r]['day_brackets'] = WorklogData::line_get_brackets($row['text']);
+      $day_timestamp = @strtotime($day_text);
+      if (!empty($day_timestamp)) $parsed[$r]['timestamp'] = $day_timestamp;
+      $parsed[$r]['day_brackets'] = $day_brackets;
+      $parsed[$r]['day_yyyymmdd'] = $day_yyyymmdd;
     }
     foreach($parsed as $day) {
       if (!empty($options['since']) && !WorklogData::time_filter_since($day['timestamp'],$options['since'])) {
@@ -696,9 +700,16 @@ class WorklogData {
               $category_taxpercent = current( CLI::get_note_data_by_keys( 'Client-'.$entry_category ) )['Client Tax Percent'];
               $category_taxratio = (float) trim($category_taxpercent,'%') / 100.0;
               $category_multiplier = WorklogData::brackets_get_multiplier($category_brackets);
+              $category_yyyymmdd = WorklogData::brackets_get_yyyymmdd($category_brackets);
+              $category_brackets = WorklogData::brackets_remove_item($category_brackets,[
+                $day['day_yyyymmdd'],
+                $category_yyyymmdd,
+                $title_yyyymmdd,
+              ]);
               if (empty($category_multiplier)) $category_multiplier = '1.0';
               $title_brackets = WorklogData::line_get_brackets($tasktitle);
               $title_multiplier = WorklogData::brackets_get_multiplier($title_brackets);
+              $title_yyyymmdd = WorklogData::brackets_get_yyyymmdd($title_brackets);
               if (empty($title_multiplier)) $title_multiplier = '1.0';
               $rate = WorklogData::brackets_get_rate($category_brackets);
               if (empty($rate) && !empty($category_rate)) $rate = $category_rate;
@@ -756,6 +767,13 @@ class WorklogData {
                 $title_brackets
                 //$task_brackets
               );
+              
+              $all_brackets = WorklogData::brackets_remove_item($all_brackets,[
+                $day['day_yyyymmdd'],
+                $category_yyyymmdd,
+                $title_yyyymmdd,
+              ]);
+              
               $free_brackets = $all_brackets;
 
               $multiplier = $category_multiplier * $title_multiplier;
@@ -826,22 +844,41 @@ class WorklogData {
               if (!empty($category_rate)) $rate = $client_rate;
               if (!empty($project_rate)) $rate = $project_rate;
               
+              $all_timestamps = [];   
+              if (!empty($day['timestamp'])) $all_timestamps['day'] = $day['timestamp'];
+              if (!empty($lowest)) $all_timestamps['lowest'] = $lowest;
+              if (!empty($day['day_yyyymmdd'])) $all_timestamps['day-ymd'] = strtotime($day['day_yyyymmdd']);
+              if (!empty($category_yyyymmdd)) $all_timestamps['cat-ymd'] = strtotime($category_yyyymmdd);
+              if (!empty($title_yyyymmdd)) $all_timestamps['title-ymd'] = strtotime($title_yyyymmdd);
+              
+              $use_timestamp = end($all_timestamps);
+              $use_timestamp_w_time = empty($lowest) ? 
+                $use_timestamp : 
+                WorklogData::time_get_timestamp_on_day($use_timestamp,$lowest);
+              $use_timestamp_datetime_sting = date('Y-m-d H:i:s', $use_timestamp_w_time);
+            
               $entry = array();
               $entry['day_text'] = $day['day_text'];
+              $entry['day_yyyymmdd'] = $day['day_yyyymmdd'];
               $entry['stamp'] = $day['timestamp'];
               $entry['date'] = date('Y-m-d',$day['timestamp']);
-              $entry['started_at'] = date('Y-m-d H:i:s', $lowest ?: $day['timestamp']);
+              $entry['all_timestamps'] = $all_timestamps;
+              $entry['started_at'] = $use_timestamp_datetime_sting; 
+              // $entry['started_at'] = date('Y-m-d H:i:s', $lowest ?: $day['timestamp']);
+              
               $entry['title'] = $tasktitle;
               $entry['note'] = $taskcleannote;
               $entry['notes'] = $clean_notes;
               $entry['queued'] = $queued;
               $entry['stars'] = $stars;
               $entry['category_info'] = $category_info[ $cleancategory ];
+              $entry['category_yyyymmdd'] = $category_yyyymmdd;
               $entry['client'] = $entry_category;
               $entry['hours'] = $hours;
               $entry['multiplier'] = $multiplier; 
               $entry['category_multiplier'] = $category_multiplier; 
               $entry['title_multiplier'] = $title_multiplier; 
+              $entry['title_yyyymmdd'] = $title_yyyymmdd;
               $entry['hours_multiplied'] = $hours_multiplied;             
               $entry['rate'] = $rate;
               $entry['subtotal'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
@@ -942,7 +979,7 @@ class WorklogData {
   public static function line_get_brackets($text) {
 
     $matches = array();
-    preg_match_all('/\(([^\)]+)\)/i',$text,$matches);
+    preg_match_all('/\(+([^\)]+)\)+/i',$text,$matches);
     $return = @is_array($matches[1]) ? $matches[1] : array();
     return $return;
 
@@ -985,6 +1022,20 @@ class WorklogData {
       $bracket_cleaned = strtr($bracket,['$'=>'',','=>'']);
       $is_numeric = is_numeric($bracket_cleaned);
       if ($is_dollarsigned_or_negative && $is_numeric) return $bracket_cleaned;
+    }
+    return null;
+
+  }
+  public static function brackets_get_yyyymmdd($brackets) {
+
+    if (!is_array($brackets) && !empty($brackets)) 
+      $brackets = [ $brackets ];
+      
+    foreach($brackets as $bracket) {
+      $bracket = trim($bracket);
+      $is_yyyymmdd = preg_match('/\d\d\d\d-\d\d-\d\d/',$bracket);
+      $can_covert_to_timestamp = strtotime($bracket) != FALSE;
+      if ($is_yyyymmdd && $can_covert_to_timestamp) return $bracket;
     }
     return null;
 
@@ -1070,7 +1121,7 @@ class WorklogData {
   }
   public static function line_clean_brackets($text) {
 
-    $text = preg_replace("/\s*\([^\(]+\)/i","",$text);
+    $text = preg_replace("/\s*\(+[^\(]+\)+/i","",$text);
     $text = trim($text);
     $text = trim($text,'.');
     $text = trim($text);
@@ -1089,25 +1140,47 @@ class WorklogData {
     return $final;
 
   }
-  public static function time_get_timestamp_on_day($day_timestamp,$time,$next_day_if_after_timestamp) {
-
+  public static function time_get_timestamp_on_day($day_timestamp,$time_timestamp,$next_day_if_after_timestamp=null) {
+    // define timepoint that will be returned
     $timepoint = null;
-    if (!preg_match('/[\+\-]/i',$time)) {
-      $am = preg_match('/a/i',$time);
-      $pm = preg_match('/p/i',$time);
-      $colon = preg_match('/:/i',$time);
-      if (!$am && !$pm && !($am && $pm)) return null;
-      if (!$colon) return null;
-      $timestr = preg_replace('/[^0-9\:]+/i','',$time);
-      if (empty($timestr)) return null;
-      if ($am) $timestr .= 'am';
-      else if ($pm) $timestr .= 'pm';
-      $timepoint = strtotime(date('Y-m-d',$day_timestamp).' '.$timestr);
-      if ($timepoint < $next_day_if_after_timestamp) $timepoint += (24 * 60 * 60);
-      if (empty($timepoint)) return null;
+    // if day is not numeric string, convert to timestamp
+    if (is_string($day_timestamp) && !is_numeric($day_timestamp)) {
+      $day_timestamp = strtotime($day_timestamp);
+      if (empty($day_timestamp)) return null;
     }
+    // if time is not numeric string, convert to timestamp
+    if (is_string($time_timestamp) && !is_numeric($time_timestamp)) {
+      // process +/- a/p time format (+10:20am)
+      if (!preg_match('/[\+\-]/i',$time_timestamp)) {
+        $am = preg_match('/a/i',$time_timestamp);
+        $pm = preg_match('/p/i',$time_timestamp);
+        $colon = preg_match('/:/i',$time_timestamp);
+        if (!$am && !$pm && !($am && $pm)) return null;
+        if (!$colon) return null;
+        $time_timestamp = preg_replace('/[^0-9\:]+/i','',$time_timestamp);
+        if (empty($time_timestamp)) return null;
+        if ($am) $time_timestamp .= 'am';
+        else if ($pm) $time_timestamp .= 'pm';
+      }
+      // convert to timestamp
+      $time_timestamp = strtotime(date('Y-m-d').' '.$time_timestamp);
+      if (empty($time_timestamp)) return null;
+    }
+    // convert day and time timestamps into combined timepoint  
+    if (is_numeric($day_timestamp) && is_numeric($time_timestamp)) {
+      $day_string = date('Y-m-d',$day_timestamp);
+      $time_string = date('H:i:s',$time_timestamp);
+      $datetime_string = $day_string.' '.$time_string;
+      $timepoint = strtotime($datetime_string);
+    }
+    // add 24hrs if timestamp is after this timestampe
+    if (!empty($next_day_if_after_timestamp) && $timepoint < $next_day_if_after_timestamp) {
+      $timepoint += (24 * 60 * 60);
+    }
+    // if empty return null
+    if (empty($timepoint)) return null;
+    
+    // return timepoint
     return $timepoint;
-
   }
-
 }

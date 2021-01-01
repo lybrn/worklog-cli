@@ -47,11 +47,11 @@ class WorklogFilter {
         if ($exclude) { continue; }
       }
       if (!is_null($options['range'])) {
-        if ($item['started_at'] < $options['range'][0]) continue;
-        if ($item['started_at'] > $options['range'][1]) continue;
+        if ($item['started_at'] < $options['range'][0]) { continue; }
+        if ($item['started_at'] > $options['range'][1]) { continue; }
       }
       if (!empty($options['incomeonly'])) {
-        if (empty($item['$']) && empty($item['client-$'])) continue;
+        if (empty($item['$']) && empty($item['client-$'])) { continue; }
       }
       $filtered[] = $item;
     }
