@@ -172,6 +172,28 @@ class CLI {
     return $cached[$args_key];
 
   }
+  public static function get_filtered_data_2021($args=[]) {
+
+    static $cached = [];
+    $args = @$args ?: CLI::$args;
+    $args_key = md5(print_r($args,TRUE));
+    if (empty($cached[$args_key])) {
+      
+      // get worklog file paths
+      $worklog_file_paths = CLI::get_worklog_filepaths();
+
+      // parse and filter worklog
+      $parsed = Worklog2021\WorklogEntries::entries($worklog_file_paths);
+      $filtered = $parsed;
+      // $filtered = WorklogFilter::filter_parsed($parsed,$args);
+
+      $cached[$args_key] = $filtered;
+      
+    }
+    // return filtered
+    return $cached[$args_key];
+
+  }  
   public static function get_note_data() {
     
     static $notedata = null;

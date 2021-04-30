@@ -16,6 +16,30 @@ class WorklogReports {
       $filtered[] = $entry;
     }
     return $filtered;
+  }  
+  public static function extract_merged($entries,$field) {
+    
+    $extracted = array();
+    
+    if (is_array($entries)) foreach($entries as $index=>$entry) {
+      
+      if (!array_key_exists($field,$entry)) continue;
+      
+      $field_value = $entry[$field];
+      $field_value_is_array = is_array($field_value);
+      $field_value_is_scalar = is_scalar($field_value);
+      
+      if ($field_value_is_scalar) {
+        $extracted[] = $field_value;
+      } 
+      else if ($field_value_is_array) {
+        $extracted = array_merge($extracted,$field_value);
+      }
+      
+    }
+    
+    return $extracted;
+
   }
   public static function report($entries,$fields) {
 
@@ -44,6 +68,9 @@ class WorklogReports {
 
   }    
   public static function fields($fields) {
+    
+    if (is_string($fields)) $fields = [ $fields ];
+    
     $return = [];
     foreach($fields as $key => $value) {
       $key_is_numeric = is_numeric($key);

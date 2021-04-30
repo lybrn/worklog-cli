@@ -55,13 +55,55 @@ class WorklogAugment {
 
         }
       }
+      
+      $entry['entry_brackets_all'] = array_merge(
+        $entry['day_brackets_all'],
+        $entry['category_brackets_all'],
+        $entry['title_text_precolon'],
+        $entry['title_brackets_all'],
+        $entry['note_brackets_all'],
+      );
+
       //ksort($bare_entry);
+      
     }
     
 
     return $entries;
     
   }
+  public static function add_date_data($entries) {
+    
+    foreach($entries as &$entry) {
+      
+      // day 
+      $day_timestamp = @strtotime($entry['day_text_nobrackets']);
+      $day_brackets_yyyymmdd = WorklogParsing::brackets_get_yyyymmdd($entry['day_brackets_all']);
+      
+      $entry['day_timestamp'] = $day_timestamp;
+      $entry['day_brackets_yyyymmdd'] = $day_brackets_yyyymmdd;
+      
+      // category
+      $category_brackets_yyyymmdd = WorklogParsing::brackets_get_yyyymmdd($entry['category_brackets_all']);
+      $entry['category_brackets_yyyymmdd'] = $category_brackets_yyyymmdd;
+
+      // title
+      $title_brackets_yyyymmdd = WorklogParsing::brackets_get_yyyymmdd($entry['title_brackets_all']);
+      $entry['title_brackets_yyyymmdd'] = $title_brackets_yyyymmdd;
+      
+      $entry['entry_brackets_yyyymmdd'] = []; 
+      if (!empty($day_brackets_yyyymmdd)) 
+        $entry['entry_brackets_yyyymmdd'][] = $day_brackets_yyyymmdd;
+      if (!empty($category_brackets_yyyymmdd)) 
+        $entry['entry_brackets_yyyymmdd'][] = $category_brackets_yyyymmdd;
+      if (!empty($title_brackets_yyyymmdd)) 
+        $entry['entry_brackets_yyyymmdd'][] = $title_brackets_yyyymmdd;
+
+    }
+    
+    return $entries;
+    
+  }  
   public static function add_title_category_data($entries) {
     $count = [];
     $first_line_number = [];
@@ -81,6 +123,13 @@ class WorklogAugment {
       $title_category_key = implode('-',$title_category_key);
       $entry['title_category_sittings'] = @$count[$title_category_key] ?: null;
       $entry['title_category_first_line_number'] = @$first_line_number[$title_category_key] ?: null;
+      $entry['title_category_brackets_all'] = array_merge(
+          $entry['category_brackets_all'] ?: [],
+          $entry['title_brackets_all'] ?: []);
+      $entry['title_category_tags_all'] = array_merge(
+        $entry['category_tags_all'] ?: [],
+        $entry['title_tags_all'] ?: []
+      );
     }
     return $entries;
   }
@@ -92,14 +141,89 @@ class WorklogAugment {
       $category = $entry['category_text_nobrackets'];
       $client_key = 'Client-'.$category;
       $client_data = current( CLI::get_note_data_by_keys( $client_key ) );
-      foreach($client_data as $key=>$value) {
+      if (is_array($client_data)) foreach($client_data as $key=>$value) {
         $normalized_key = WorklogNormalize::normalize_key($key,'- ','_');
         $entry[$normalized_key] = $value;
       }
     }
 
     return $entries;
-  }  
+  }   
+  public static function add_client_project_data($entries) {
+
+    $count = [];
+    $first_line_number = [];
+    $project_lists_by_client = [];
+    $project_data_by_client_project = [];
+
+    foreach($entries as &$entry) {
+      $entry['client_project_name'] = [];
+      // $entry['client_project_rejected'] = [];
+      $title_category_tags_all = $entry['title_category_tags_all'];
+      $client_short_name = $entry['client_short_name'];
+      $client_projects_key = 'Projects-'.$client_short_name;
+      
+      if (!array_key_exists($client_projects_key,$project_lists_by_client)) {
+        $project_lists_by_client[ $client_projects_key ] = current( CLI::get_note_data_by_keys( $client_projects_key ) );
+      }
+      $client_projects_list = $project_lists_by_client[ $client_projects_key ];
+            
+      if (is_array($title_category_tags_all)) foreach($title_category_tags_all as $tag) {
+        $tag_normalized = WorklogNormalize::normalize_key($tag);
+        if (is_array($client_projects_list)) foreach($client_projects_list as $project) {
+          $project_normalized = WorklogNormalize::normalize_key($project);
+          if ($tag_normalized==$project_normalized) {
+            
+            $client_project_data_key = 'Project-'.$client_short_name.'-'.$project;            
+            if (!array_key_exists($client_project_data_key,$project_data_by_client_project)) {
+              $data_to_cache = current( CLI::get_note_data_by_keys( $client_project_data_key ) );;
+              $data_to_cache = WorklogNormalize::normalize_array_keys($data_to_cache);
+              $data_to_cache = WorklogNormalize::array_keys_remove_prefix($data_to_cache,'project');
+              $project_data_by_client_project[ $client_project_data_key ] = $data_to_cache;
+              // print_r([ $client_project_data_key => $data_to_cache ]);
+            }                 
+            $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
+            
+            $entry['client_project_name'] = @$client_project_data['name'] ?: $project;
+            $entry['client_project_number'] = @$client_project_data['number'] ?: null;
+            $entry['client_project_client'] = @$client_project_data['client'] ?: null;
+            $entry['client_project_distribute'] = @$client_project_data['distribute'] ?: null;
+
+            
+            $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
+          } else {
+            // $entry['client_project_rejected'][$tag_normalized] = $tag;
+          }
+        }
+      }
+      
+    }
+    
+    
+    
+    foreach($entries as $entry) {
+      $client_project_key = [];
+      $client_project_key[] = @$entry['client_full_name'] ?: '-';
+      $client_project_key[] = @$entry['client_project_name'] ?: '-';
+      $client_project_key = trim( WorklogNormalize::normalize_key( implode('-',$client_project_key),'-' ),'-');
+      if (empty($client_project_key))
+      if (empty($client_project_key)) continue;
+      $count[$client_project_key]++;
+      if (empty($first_line_number[$client_project_key]))
+        $first_line_number[$client_project_key] = $entry['category_line_number'];
+    }
+
+    foreach($entries as &$entry) {
+      $client_project_key = [];
+      $client_project_key[] = @$entry['client_full_name'] ?: '-';
+      $client_project_key[] = @$entry['client_project_name'] ?: '-';
+      $client_project_key = trim( WorklogNormalize::normalize_key( implode('-',$client_project_key),'-' ),'-');
+      $entry['client_project_key'] = $client_project_key;
+      $entry['client_project_sittings'] = @$count[$client_project_key] ?: null;
+      $entry['client_project_first_line_number'] = @$first_line_number[$client_project_key] ?: null;
+    }
+    return $entries;
+  }    
   
   public static function add_timetracking_data($entries) {
     

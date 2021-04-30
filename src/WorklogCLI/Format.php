@@ -80,6 +80,11 @@ class Format {
     }
     return $array_unprefixed;
   }  
+  public static function format_seconds_to_hours($seconds) {
+    $hours = $seconds / (60.0 * 60.0);
+    $hours = number_format($hours,2);
+    return $hours;
+  }
   public static function format_hours($hours) {
     $hours = number_format($hours,2);
     return $hours;
