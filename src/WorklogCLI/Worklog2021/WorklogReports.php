@@ -41,9 +41,62 @@ class WorklogReports {
     return $extracted;
 
   }
+  public static function reduce($entries,$fields) {
+    
+    $keep_columns = [];
+    $parent_columns = [];
+    foreach($fields as $field) {
+      $parent_key = $field['parent'];
+      $field_key = $field['column'];
+      if (!empty($parent_key)) $parent_columns[$parent_key] = $parent_key;
+      if (!empty($parent_key)) $keep_columns[$parent_key] = $parent_key;
+      if (!empty($field_key)) $keep_columns[$field_key] = $field_key;
+    }
+    
+    $filtered = [];
+    foreach($entries as $i=>$entry) {
+      $filtered_row = [];
+      foreach($keep_columns as $keep_column) {
+        $filtered_row[$keep_column] = $entry[$keep_column];
+      }
+      $filtered[$i]=$filtered_row;
+    }
+    
+    foreach($parent_columns as $parent_column) {
+      $filtered = WorklogReports::flatten($filtered,$parent_column);
+    }
+    return $filtered;
+    
+  }
+  public static function flatten($entries,$subkey) {
+    $flattened = [];
+    
+    foreach($entries as $entry) {
+      $sublist = @$entry[$subkey] ?: [];
+      if (!empty($sublist) && is_array($sublist)) {
+        foreach($sublist as $subitem) {
+          $row = $entry;
+          unset($row[$subkey]);
+          foreach($subitem as $k => $v) {
+            if (!array_key_exists($k,$row) || is_null($row[$k]) || $row[$k]=='') 
+              $row[$k] = $v;
+          }
+          $flattened[] = $row;
+        }
+      } else {
+        $row = $entry; 
+        unset($row[$subkey]);
+        $flattened[] = $row;
+      } 
+    }
+    
+    return $flattened;
+  }
   public static function report($entries,$fields) {
 
     $fields = WorklogReports::fields($fields);
+    
+    $entries = WorklogReports::reduce($entries,$fields);
     
     $rows = array();
     if (is_array($entries)) foreach($entries as $index=>$entry) {
@@ -59,7 +112,7 @@ class WorklogReports {
       $rows[ $sortkey ] = $row;
     }
     
-    ksort($rows);
+    uksort($rows, "strnatcmp");
     
     $rows = array_values($rows);
     
@@ -81,12 +134,20 @@ class WorklogReports {
         $field = [];
         $field['column'] = $value;
         $field['as'] = $value;
+        if(strpos($field['column'],'/')!==FALSE) {
+          $field['parent'] = reset(explode('/',$field['column']));
+          $field['column'] = end(explode('/',$field['column']));
+        }
         $return[] = $field;
       }
       if (!$key_is_numeric && $key_is_nonempty_string && $value_is_nonempty_string) {
         $field = [];
         $field['column'] = $value;
         $field['as'] = $key;
+        if(strpos($field['column'],'/')!==FALSE) {
+          $field['parent'] = reset(explode('/',$field['column']));
+          $field['column'] = end(explode('/',$field['column']));
+        }
         $return[] = $field;
       }
     }

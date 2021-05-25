@@ -474,6 +474,7 @@ class WorklogSummary {
       ));
       
       $first_line_key = [];
+      $first_line_key[] = $task_line;
       $first_line_key[] = $task_client;
       $first_line_key[] = $task_project;
       $first_line_key[] = $task_text;
@@ -514,7 +515,9 @@ class WorklogSummary {
       }
       $summary[ $sortkey ] = $task_summary;
     }      
+    
     ksort($summary,SORT_NATURAL);  
+    
     return array_values($summary);
     
   }             

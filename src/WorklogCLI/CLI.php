@@ -183,8 +183,9 @@ class CLI {
       $worklog_file_paths = CLI::get_worklog_filepaths();
 
       // parse and filter worklog
-      $parsed = Worklog2021\WorklogEntries::entries($worklog_file_paths);
-      $filtered = $parsed;
+      $entries = Worklog2021\WorklogEntries::entries($worklog_file_paths);
+      $entries = Worklog2021\WorklogAugment::add_filterable_data($entries);
+      $filtered = Worklog2021\WorklogFilter::filter_entries($entries,$args);
       // $filtered = WorklogFilter::filter_parsed($parsed,$args);
 
       $cached[$args_key] = $filtered;

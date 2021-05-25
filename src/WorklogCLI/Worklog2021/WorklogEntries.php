@@ -15,10 +15,12 @@ class WorklogEntries {
       
       $day_raw = trim($day_row['text']);
       $day_text = WorklogParsing::line_clean_brackets($day_row['text']);
+      $day_key = WorklogNormalize::normalize_key($day_text,'_- ','-');
       $day_precolon = WorklogParsing::line_get_precolon($day_row['text']) ?: []; 
       $day_brackets = WorklogParsing::line_get_brackets($day_row['text']) ?: []; 
       $day_line_number = $day_row['linenum'];
       
+      $bare_entry['day_key'] = $day_key;
       $bare_entry['day_text_raw'] = $day_raw;
       $bare_entry['day_text_nobrackets'] = $day_text;
       $bare_entry['day_precolon'] = $day_precolon;
@@ -32,10 +34,12 @@ class WorklogEntries {
           
           $category_raw = trim($category_row['text']);
           $category_text = WorklogParsing::line_clean_brackets($category_row['text']);
+          $category_key = WorklogNormalize::normalize_key($category_text,'_- ','-');
           $category_precolon = WorklogParsing::line_get_precolon($category_row['text']) ?: [];
           $category_brackets = WorklogParsing::line_get_brackets($category_row['text']) ?: [];
           $category_line_number = $category_row['linenum'];
           
+          $bare_entry['category_key'] = $category_key;
           $bare_entry['category_text_raw'] = $category_raw;
           $bare_entry['category_text_nobrackets'] = $category_text;
           $bare_entry['category_precolon'] = $category_precolon;
@@ -49,10 +53,12 @@ class WorklogEntries {
             
               $title_raw = trim($title_row['text']);
               $title_text = WorklogParsing::line_clean_brackets($title_row['text']);
-              $title_precolon = WorklogParsing::line_get_precolon($title_row['text']) ?: [];
+              $title_key = WorklogNormalize::normalize_key($title_text,'_- ','-');
+              $title_precolon = WorklogParsing::line_get_precolon($title_text) ?: [];
               $title_brackets = WorklogParsing::line_get_brackets($title_row['text']) ?: [];
               $title_line_number = $title_row['linenum'];
             
+              $bare_entry['title_key'] = $title_key;
               $bare_entry['title_text_raw'] = $title_raw;
               $bare_entry['title_text_nobrackets'] = $title_text;
               $bare_entry['title_precolon'] = @$title_precolon ?: [];              
@@ -60,6 +66,11 @@ class WorklogEntries {
               $bare_entry['title_tags_all'] = array_merge($title_brackets, $title_precolon);
               $bare_entry['title_line_number'] = $title_line_number;
 
+              $title_category_key = implode('-',[ $category_key, $title_key ]);
+              $title_category_key = WorklogNormalize::normalize_key($title_category_key,'_- ','-');
+              
+              $bare_entry['title_category_key'] = $title_category_key;
+                
               $bare_entry_notes = [];
               $bare_entry_notes_brackets_all = [];
               
@@ -76,10 +87,12 @@ class WorklogEntries {
                   
                   $note_raw = trim($note_row['text']);
                   $note_text = WorklogParsing::line_clean_brackets($note_row['text']);
+                  $note_key = WorklogNormalize::normalize_key($note_text,'_- ','-');
                   $note_brackets = WorklogParsing::line_get_brackets($note_row['text']);
                   $note_line_number = $note_row['linenum'];
 
-                  $bare_entry_note['note_text_raw'] = $note_raw;
+                  $bare_entry_note['note_key'] = $note_raw;
+                  $bare_entry_note['note_text_raw'] = $note_key;
                   $bare_entry_note['note_text_nobrackets'] = $note_text;
                   $bare_entry_note['note_brackets_all'] = $note_brackets;
                   $bare_entry_note['note_line_number'] = $note_line_number;
@@ -94,13 +107,14 @@ class WorklogEntries {
               $bare_entry['note_rows'] = $bare_entry_notes;
               $bare_entry['note_brackets_all'] = $bare_entry_notes_brackets_all;
               
+              $bare_data[] = $bare_entry;
+              
             }
           }
               
         }
       }
         
-      $bare_data[] = $bare_entry;
     }
     
     
