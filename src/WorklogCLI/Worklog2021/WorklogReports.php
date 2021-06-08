@@ -100,6 +100,7 @@ class WorklogReports {
     
     $rows = array();
     if (is_array($entries)) foreach($entries as $index=>$entry) {
+      $sortvalues = [];
       $row = [];
       foreach($fields as $field) {
         $report_key = $field['as'];
@@ -107,17 +108,34 @@ class WorklogReports {
         $report_value = $entry[ $field_key ];
         if (is_array($report_value)) $report_value = implode(' ',$report_value);
         $row[$report_key] = $report_value;
+        if (empty($field['callable'])) {
+          $sortvalues[] = $report_value;
+        }
       }
-      $sortkey = implode('-',$row);
-      $rows[ $sortkey ] = $row;
+      $sortkey = implode('-',$sortvalues);
+      $rows[] = [ $sortkey => $row ];
     }
     
-    uksort($rows, "strnatcmp");
+    foreach($fields as $field) {
+      if (!empty($field['callable'])) {
+        $field_callable = '\\WorklogCLI\\Worklog2021\\'.$field['callable'];
+        $rows = call_user_func_array($field_callable,[$field,$rows]);
+      }
+    }
     
-    $rows = array_values($rows);
+    $return = [];
     
+    foreach($rows as $row) {
+      $rowdata = reset($row);
+      $sortkey = key($row);
+      $return[$sortkey] = $rowdata;
+    }
+
+    uksort($return, "strnatcmp");
     
-    return $rows;
+    $return = array_values($return);
+    
+    return $return;
 
   }    
   public static function fields($fields) {
@@ -126,29 +144,42 @@ class WorklogReports {
     
     $return = [];
     foreach($fields as $key => $value) {
+      $field = [];
       $key_is_numeric = is_numeric($key);
       $key_is_nonempty_string = is_string($key) && ($key!='');;
       $value_is_numeric = is_numeric($value);
       $value_is_nonempty_string = is_string($value) && ($value!='');
       if ($key_is_numeric && $value_is_nonempty_string) {
-        $field = [];
         $field['column'] = $value;
         $field['as'] = $value;
-        if(strpos($field['column'],'/')!==FALSE) {
-          $field['parent'] = reset(explode('/',$field['column']));
-          $field['column'] = end(explode('/',$field['column']));
-        }
-        $return[] = $field;
       }
       if (!$key_is_numeric && $key_is_nonempty_string && $value_is_nonempty_string) {
-        $field = [];
         $field['column'] = $value;
         $field['as'] = $key;
-        if(strpos($field['column'],'/')!==FALSE) {
-          $field['parent'] = reset(explode('/',$field['column']));
-          $field['column'] = end(explode('/',$field['column']));
+      }
+      // look for 'callable'
+      if (!empty($field['column'])) {
+        $last_slash_item = end(explode('/',$field['column']));
+        $last_is_callable = is_callable('\\WorklogCLI\\Worklog2021\\'.$last_slash_item);
+        $last_has_double_colon = strpos($last_slash_item,'::')!==FALSE;
+        if ($last_has_double_colon && $last_is_callable) {
+          $field['callable'] = $last_slash_item;
+          $field['column'] = explode('/',$field['column']);
+          array_pop($field['column']);
+          $field['column'] = implode('/',$field['column']);
         }
-        $return[] = $field;
+      }
+      // look for 'parent'
+      if (!empty($field['column'])) {
+        if(strpos($field['column'],'/')!==FALSE) {
+          $slashbroken = explode('/',$field['column']);
+          $field['parent'] = reset($slashbroken);
+          $field['column'] = end($slashbroken);
+        }
+      }
+      // return
+      if (!empty($field)) {
+        $return[] = $field; 
       }
     }
     return $return;
