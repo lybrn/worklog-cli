@@ -129,6 +129,53 @@ class WorklogAugment {
     return $entries;
     
   }  
+  public static function count($field_data,$rows) {
+    $count_data = [];
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['as'];
+      if (empty($count_data[ $sortkey ])) {
+        $count_data[ $sortkey ] = 1;
+      } else {
+        $count_data[ $sortkey ] += 1;
+      }
+      $row[$sortkey][ $fieldkey ] = &$count_data[ $sortkey ];
+    } 
+    return $rows;
+  }
+  public static function count_unique($field_data,$rows) {
+    $count_data = [];
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['as'];
+      $fieldvalue = $row[ $sortkey ][ $fieldkey ];
+      if (empty($count_data[ $sortkey ])) {
+        $count_data[ $sortkey ] = [];
+      } 
+      $count_data[ $sortkey ][ $fieldvalue ] = $fieldvalue;
+      $row[$sortkey][ $fieldkey ] = &$count_data[ $sortkey ];
+    } 
+    foreach($count_data as &$item) {
+      $item = count($item);
+    }
+    return $rows;
+  }  
+  public static function sum($field_data,$rows) {
+    $sum_data = [];
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['as'];
+      $fieldvalue = $row[ $sortkey ][ $fieldkey ];
+      if (empty($sum_data[ $sortkey ])) {
+        $sum_data[ $sortkey ] = 0;
+      }
+      if (is_numeric($fieldvalue)) {
+        $sum_data[ $sortkey ] += $fieldvalue;
+      }
+      $row[$sortkey][ $fieldkey ] = &$sum_data[ $sortkey ];
+    } 
+    return $rows;
+  }  
   public static function add_date_data($entries) {
     
     foreach($entries as &$entry) {
