@@ -180,7 +180,6 @@ class WorklogFilter {
   }
   public static function args_get_tags($data,$args) {
     $tag_list = WorklogFilter::tags_list($data);
-    print_r($tag_list);
     $tags = [];
     foreach($args as $arg) {
       $is_negative = substr($arg,0,1)=='-';
