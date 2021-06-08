@@ -100,13 +100,8 @@ class WorklogAugment {
                   
       // client name tags
       $category = $entry['category_text_nobrackets'];
-      $client_key = 'Client-'.$category;
-      $client_data = current( CLI::get_note_data_by_keys( $client_key ) );
-      $client_data_normalized = [];
-      if (is_array($client_data)) foreach($client_data as $key=>$value) {
-        $normalized_key = WorklogNormalize::normalize_key($key,'- ','_');
-        $client_data_normalized[$normalized_key] = $value;
-      }      
+      $client_data_normalized = WorklogLookup::get_client_details_array($category);
+      
       if (!empty($client_data_normalized['client_full_name']))        
         $possible_tags[] = $client_data_normalized['client_full_name'];
       if (!empty($client_data_normalized['client_short_name']))        
@@ -217,15 +212,29 @@ class WorklogAugment {
   public static function add_client_data($entries) {
   
     foreach($entries as &$entry) {
+      
       $category = $entry['category_text_nobrackets'];
-      $client_key = 'Client-'.$category;
-      $client_data = current( CLI::get_note_data_by_keys( $client_key ) );
-      if (is_array($client_data)) foreach($client_data as $key=>$value) {
-        $normalized_key = WorklogNormalize::normalize_key($key,'- ','_');
-        $entry[$normalized_key] = $value;
-      }      
+      
+      if (empty($category) || !is_string($category)) {
+        $entry['client_key'] = null;
+        continue;
+      }
+      
+      $client_data = WorklogLookup::get_client_details_array($category);
+      
+      if (empty($client_data) || !is_array($client_data)) {
+        $entry['client_key'] = null;
+        continue;
+      }
+      
+      foreach($client_data as $key=>$value) {
+        $entry[$key] = $value;
+      }
+      
       $client_key = WorklogNormalize::normalize_key($entry['client_full_name'],'-_','-');
+      
       $entry['client_key'] = $client_key;
+
     }
     
     $count_sittings = [];
@@ -298,58 +307,53 @@ class WorklogAugment {
       // $entry['client_project_rejected'] = [];
       $title_category_tags_all = $entry['title_category_tags_all'];
       $client_short_name = $entry['client_short_name'];
-      $client_projects_notedata_key = 'Projects-'.$client_short_name;
       
-      if (!array_key_exists($client_projects_notedata_key,$project_lists_by_client)) {
-        $project_lists_by_client[ $client_projects_notedata_key ] = current( CLI::get_note_data_by_keys( $client_projects_notedata_key ) );
+      if (!array_key_exists($client_short_name,$project_lists_by_client)) {
+        $project_lists_by_client[ $client_short_name ] = WorklogLookup::get_client_projects_list($client_short_name);
       }
-      $client_projects_list = $project_lists_by_client[ $client_projects_notedata_key ];
+      $client_projects_list = $project_lists_by_client[ $client_short_name ];
             
-      if (is_array($title_category_tags_all)) foreach($title_category_tags_all as $tag) {
-        $tag_normalized = WorklogNormalize::normalize_key($tag);
-        if (is_array($client_projects_list)) foreach($client_projects_list as $project) {
-          $project_normalized = WorklogNormalize::normalize_key($project);
-          if ($tag_normalized==$project_normalized) {
+      $project = WorklogLookup::get_client_project_from_list($client_short_name,$title_category_tags_all);
+      if (!empty($project)) {
             
-            $client_project_data_key = 'Project-'.$client_short_name.'-'.$project;            
-            if (!array_key_exists($client_project_data_key,$project_data_by_client_project)) {
-              $data_to_cache = current( CLI::get_note_data_by_keys( $client_project_data_key ) );;
-              $data_to_cache = WorklogNormalize::normalize_array_keys($data_to_cache);
-              $data_to_cache = WorklogNormalize::array_keys_remove_prefix($data_to_cache,'project');
-              $project_data_by_client_project[ $client_project_data_key ] = $data_to_cache;
-              // print_r([ $client_project_data_key => $data_to_cache ]);
-            }                 
-            $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
-            
-            $entry['client_project_key'] = null;
-            $entry['client_project_name'] = @$client_project_data['name'] ?: $project;
-            $entry['client_project_number'] = @$client_project_data['number'] ?: null;
-            $entry['client_project_client'] = @$client_project_data['client'] ?: null;
-            $entry['client_project_distribute'] = @$client_project_data['distribute'] ?: null;
-            $entry['client_project_title_key'] = null;
+        $client_project_data_key = 'Project-'.$client_short_name.'-'.$project;            
+        if (!array_key_exists($client_project_data_key,$project_data_by_client_project)) {
+          $data_to_cache = current( CLI::get_note_data_by_keys( $client_project_data_key ) );;
+          $data_to_cache = WorklogNormalize::normalize_array_keys($data_to_cache);
+          $data_to_cache = WorklogNormalize::array_keys_remove_prefix($data_to_cache,'project');
+          $project_data_by_client_project[ $client_project_data_key ] = $data_to_cache;
+          // print_r([ $client_project_data_key => $data_to_cache ]);
+        }                 
+        
+        $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
+        
+        $entry['client_project_key'] = null;
+        $entry['client_project_name'] = @$client_project_data['name'] ?: $project;
+        $entry['client_project_number'] = @$client_project_data['number'] ?: null;
+        $entry['client_project_client'] = @$client_project_data['client'] ?: null;
+        $entry['client_project_distribute'] = @$client_project_data['distribute'] ?: null;
+        $entry['client_project_title_key'] = null;
 
-            $client_project_key = implode('-',[
-              $entry['client_key'],
-              $entry['client_project_name'],
-            ]);
-            $client_project_key = WorklogNormalize::normalize_key($client_project_key,'_- ','-');
-            
-            $entry['client_project_key'] = $client_project_key;
-            
-            $client_project_title_key = implode('-',[
-              $entry['client_project_key'],
-              $entry['title_key'],
-            ]);
-            $client_project_title_key = WorklogNormalize::normalize_key($client_project_title_key,'_- ','-');
+        $client_project_key = implode('-',[
+          $entry['client_key'],
+          $entry['client_project_name'],
+        ]);
+        $client_project_key = WorklogNormalize::normalize_key($client_project_key,'_- ','-');
+        
+        $entry['client_project_key'] = $client_project_key;
+        
+        $client_project_title_key = implode('-',[
+          $entry['client_project_key'],
+          $entry['title_key'],
+        ]);
+        $client_project_title_key = WorklogNormalize::normalize_key($client_project_title_key,'_- ','-');
 
-            $entry['client_project_title_key'] = $client_project_title_key;
-            
-            $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
-            
-          } else {
-            // $entry['client_project_rejected'][$tag_normalized] = $tag;
-          }
-        }
+        $entry['client_project_title_key'] = $client_project_title_key;
+        
+        $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
+        
+      } else {
+        // $entry['client_project_rejected'][$tag_normalized] = $tag;
       }
       
     }
