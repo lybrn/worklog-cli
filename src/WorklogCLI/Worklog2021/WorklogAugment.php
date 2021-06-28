@@ -16,6 +16,7 @@ class WorklogAugment {
       $day_brackets_remaining = WorklogParsing::brackets_remove_item($day_brackets_remaining,[ $day_brackets_yyyymmdd ]);
       
       $entry['day_timestamp'] = $day_timestamp;
+      $entry['day_timestamp_formatted'] = $day_timestamp ? date('Y-m-d',$day_timestamp) : '';
       $entry['day_brackets_yyyymmdd'] = $day_yyyymmdd;
       $entry['day_brackets_remaining'] = $day_brackets_remaining;
       
@@ -133,7 +134,7 @@ class WorklogAugment {
     $count_data = [];
     foreach($rows as &$row) {
       $sortkey = key($row);
-      $fieldkey = $field_data['as'];
+      $fieldkey = $field_data['key'];
       if (empty($count_data[ $sortkey ])) {
         $count_data[ $sortkey ] = 1;
       } else {
@@ -143,11 +144,25 @@ class WorklogAugment {
     } 
     return $rows;
   }
+  public static function join($field_data,$rows) {
+    $join_data = [];
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['as'];
+      $fieldvalue = $row[ $sortkey ][ $fieldkey ];
+      if (empty($join_data[ $sortkey ])) {
+        $join_data[ $sortkey ] = [];
+      }  
+      $join_data[ $sortkey ][] = $fieldvalue;
+      $row[$sortkey][ $fieldkey ] = &$join_data[ $sortkey ];
+    } 
+    return $rows;
+  }  
   public static function count_unique($field_data,$rows) {
     $count_data = [];
     foreach($rows as &$row) {
       $sortkey = key($row);
-      $fieldkey = $field_data['as'];
+      $fieldkey = $field_data['key'];
       $fieldvalue = $row[ $sortkey ][ $fieldkey ];
       if (empty($count_data[ $sortkey ])) {
         $count_data[ $sortkey ] = [];
@@ -160,11 +175,28 @@ class WorklogAugment {
     }
     return $rows;
   }  
+  public static function join_unique($field_data,$rows) {
+    $join_data = [];
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['key'];
+      $fieldvalue = $row[ $sortkey ][ $fieldkey ];
+      if (empty($join_data[ $sortkey ])) {
+        $join_data[ $sortkey ] = [];
+      }  
+      $join_data[ $sortkey ][] = $fieldvalue;
+      $row[$sortkey][ $fieldkey ] = &$join_data[ $sortkey ];
+    } 
+    foreach($join_data as &$item) {
+      $item = array_unique($item);
+    }    
+    return $rows;
+  }    
   public static function sum($field_data,$rows) {
     $sum_data = [];
     foreach($rows as &$row) {
       $sortkey = key($row);
-      $fieldkey = $field_data['as'];
+      $fieldkey = $field_data['key'];
       $fieldvalue = $row[ $sortkey ][ $fieldkey ];
       if (empty($sum_data[ $sortkey ])) {
         $sum_data[ $sortkey ] = 0;
@@ -176,6 +208,46 @@ class WorklogAugment {
     } 
     return $rows;
   }  
+  public static function add_distiburion_data($entries) {  
+    
+    foreach($entries as &$entry) {
+      
+      $client_project_distribute_rows = @$entry['client_project_distribute'] ?: [];
+      
+      //print_r($client_project_distribute_rows);
+      
+      if (empty($client_project_distribute_rows) || !is_array($client_project_distribute_rows)) {
+        
+        $distiburion_client_tag = WorklogLookup::get_client_from_list($entry['filter_tags_all']);
+        $distiburion_project_tag = WorklogLookup::get_client_project_from_list($distiburion_client_tag,$entry['filter_tags_all']);;
+        $distiburion_ratio = '1.0';
+        
+        $distiburion_row = [];
+        $distiburion_row['distiburion_client_tag'] = $distiburion_client_tag;
+        $distiburion_row['distiburion_project_tag'] = $distiburion_project_tag;
+        $distiburion_row['distiburion_ratio'] = $distiburion_ratio;
+        $entry['distiburion_rows'][] = $distiburion_row;
+
+      }
+      
+      foreach($client_project_distribute_rows as $client_project_distribute_key => $client_project_distribute_ratio) {
+      
+        $distiburion_client_tag = reset(explode('/',$client_project_distribute_key));
+        $distiburion_project_tag = end(explode('/',$client_project_distribute_key));
+        $distiburion_ratio = $client_project_distribute_ratio;
+      
+        $distiburion_row = [];
+        $distiburion_row['distiburion_client_tag'] = $distiburion_client_tag;
+        $distiburion_row['distiburion_project_tag'] = $distiburion_project_tag;
+        $distiburion_row['distiburion_ratio'] = $distiburion_ratio;
+        $entry['distiburion_rows'][] = $distiburion_row;
+      
+      }
+      
+    }
+    
+    return $entries;
+  }
   public static function add_date_data($entries) {
     
     foreach($entries as &$entry) {
@@ -185,6 +257,7 @@ class WorklogAugment {
       $day_brackets_yyyymmdd = WorklogParsing::brackets_get_yyyymmdd($entry['day_brackets_all']);
       
       $entry['day_timestamp'] = $day_timestamp;
+      $entry['day_timestamp_ymd'] = $day_timestamp ? date('Y-m-d',$day_timestamp) : '';
       $entry['day_brackets_yyyymmdd'] = $day_brackets_yyyymmdd;
       
       // category
@@ -896,6 +969,43 @@ class WorklogAugment {
     
     return $entries;
     
-  }    
+  }   
+  public static function add_render_data($entries) {
+    
+    $rendered = [];
+    
+    foreach($entries as &$entry) {
+
+      $items = [];
+
+      $item = [
+        'render_line_number' => max($entry['title_line_number']-1,0),
+        'render_text' => '',
+      ];
+      
+      $items[] = $item;
+
+      $item = [
+        'render_line_number' => $entry['title_line_number'],
+        'render_text' => '### '.$entry['title_text_nobrackets'],
+      ];
+      $items[] = $item;
+
+      
+      foreach($entry['note_rows'] as $note_row) {
+        $item = [
+          'render_line_number' => $note_row['note_line_number'],
+          'render_text' => '+ '.$note_row['note_text_nobrackets'],
+        ];        
+        $items[] = $item;
+      }
+
+      $entry['rendered'] = $items;
+      
+    }
+
+    return $entries;
+    
+  }   
   
 }
