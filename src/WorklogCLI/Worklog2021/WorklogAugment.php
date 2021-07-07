@@ -208,7 +208,7 @@ class WorklogAugment {
     } 
     return $rows;
   }  
-  public static function add_distiburion_data($entries) {  
+  public static function add_distibution_data($entries) {  
     
     foreach($entries as &$entry) {
       
@@ -218,29 +218,55 @@ class WorklogAugment {
       
       if (empty($client_project_distribute_rows) || !is_array($client_project_distribute_rows)) {
         
-        $distiburion_client_tag = WorklogLookup::get_client_from_list($entry['filter_tags_all']);
-        $distiburion_project_tag = WorklogLookup::get_client_project_from_list($distiburion_client_tag,$entry['filter_tags_all']);;
-        $distiburion_ratio = '1.0';
-        
-        $distiburion_row = [];
-        $distiburion_row['distiburion_client_tag'] = $distiburion_client_tag;
-        $distiburion_row['distiburion_project_tag'] = $distiburion_project_tag;
-        $distiburion_row['distiburion_ratio'] = $distiburion_ratio;
-        $entry['distiburion_rows'][] = $distiburion_row;
+        $distibution_client_tag = WorklogLookup::get_client_from_list($entry['filter_tags_all']);
+        $distibution_project_tag = WorklogLookup::get_client_project_from_list($distibution_client_tag,$entry['filter_tags_all']);;
+        $distibution_ratio = '1.0';
+        $distibution_client_data = WorklogLookup::get_client_details_array($distibution_client_tag);
+        $distribution_hourly_rate = @$distibution_client_data['client_rate'] ?: 0.0;;
+        $distribution_entry_multipler = @$entry['title_brackets_multiplier'] ?: 1.0;;
+
+        $distibution_row = [];
+        $distibution_row['distibution_client_tag'] = '1-'.$distibution_client_tag;
+        $distibution_row['distibution_project_tag'] = $distibution_project_tag;
+        $distibution_row['distibution_ratio'] = $distibution_ratio;
+        $distibution_row['distibution_tracked_hours'] = $entry['timetracking_tracked_hours'] * $distibution_ratio;
+        $distibution_row['distibution_cost_multiplier'] = $distribution_entry_multipler;
+        $distibution_row['distibution_hourly_rate'] = $distribution_hourly_rate;
+        $distibution_row['distibution_total_hours'] = $distibution_row['distibution_tracked_hours'] * $distribution_entry_multipler;
+        $distibution_row['distibution_total_cost'] = $distibution_row['distibution_tracked_hours'] * $distribution_entry_multipler * $distribution_hourly_rate;
+        if (is_array($distibution_client_data)) {
+          $distibution_client_data = WorklogNormalize::array_keys_add_prefix($distibution_client_data,'distribution');
+          $distibution_row += $distibution_client_data;
+        }
+        $entry['distibution_rows'][] = $distibution_row;
 
       }
       
       foreach($client_project_distribute_rows as $client_project_distribute_key => $client_project_distribute_ratio) {
       
-        $distiburion_client_tag = reset(explode('/',$client_project_distribute_key));
-        $distiburion_project_tag = end(explode('/',$client_project_distribute_key));
-        $distiburion_ratio = $client_project_distribute_ratio;
-      
-        $distiburion_row = [];
-        $distiburion_row['distiburion_client_tag'] = $distiburion_client_tag;
-        $distiburion_row['distiburion_project_tag'] = $distiburion_project_tag;
-        $distiburion_row['distiburion_ratio'] = $distiburion_ratio;
-        $entry['distiburion_rows'][] = $distiburion_row;
+        $distibution_client_tag = reset(explode('/',$client_project_distribute_key));
+        $distibution_client_tag = WorklogNormalize::normalize_key($distibution_client_tag);
+        $distibution_project_tag = end(explode('/',$client_project_distribute_key));
+        $distibution_ratio = $client_project_distribute_ratio;
+        $distibution_client_data = WorklogLookup::get_client_details_array($distibution_client_tag);
+        $distribution_hourly_rate = @$distibution_client_data['client_rate'] ?: 0.0;;
+        $distribution_entry_multipler = @$entry['title_brackets_multiplier'] ?: 1.0;;
+
+        $distibution_row = [];
+        $distibution_row['distibution_client_tag'] = '2-'.$distibution_client_tag;
+        $distibution_row['distibution_project_tag'] = $distibution_project_tag;
+        $distibution_row['distibution_ratio'] = $distibution_ratio;
+        $distibution_row['distibution_tracked_hours'] = $entry['timetracking_tracked_hours'] * $distibution_ratio;
+        $distibution_row['distibution_cost_multiplier'] = $distribution_entry_multipler;
+        $distibution_row['distibution_hourly_rate'] = $distribution_hourly_rate;
+        $distibution_row['distibution_total_hours'] = $distibution_row['distibution_tracked_hours'] * $distribution_entry_multipler;
+        $distibution_row['distibution_total_cost'] = $distibution_row['distibution_tracked_hours'] * $distribution_entry_multipler * $distribution_hourly_rate;
+        if (is_array($distibution_client_data)) {
+          $distibution_client_data = WorklogNormalize::array_keys_add_prefix($distibution_client_data,'distribution');
+          $distibution_row += $distibution_client_data;
+          
+        }
+        $entry['distibution_rows'][] = $distibution_row;
       
       }
       
@@ -275,6 +301,14 @@ class WorklogAugment {
         $entry['entry_brackets_yyyymmdd'][] = $category_brackets_yyyymmdd;
       if (!empty($title_brackets_yyyymmdd)) 
         $entry['entry_brackets_yyyymmdd'][] = $title_brackets_yyyymmdd;
+
+      if (empty($day_timestamp)) {
+        $entry['check_warnings'][] = [
+          'warning_text' => 'Invalid date',
+          'warning_culprit' =>  $entry['day_text_nobrackets'],
+          'warning_line_number' => $entry['day_line_number'],
+        ];
+      }
 
     }
     
@@ -342,6 +376,14 @@ class WorklogAugment {
       
       $client_data = WorklogLookup::get_client_details_array($category);
       
+      if (empty($client_data)) {
+        $entry['check_warnings'][] = [
+          'warning_text' => 'Client not defined',
+          'warning_culprit' => $category,
+          'warning_line_number' => $entry['category_line_number'],
+        ];
+      }
+      
       if (empty($client_data) || !is_array($client_data)) {
         $entry['client_key'] = null;
         continue;
@@ -353,6 +395,13 @@ class WorklogAugment {
       
       $client_key = WorklogNormalize::normalize_key($entry['client_full_name'],'-_','-');
       
+      // $entry['client_name'] = null;
+      // if (!empty($client_data['client_name'])) $entry['client_name'] = $client_data['client_short_name'];
+      // else if (!empty($client_data['client_short_name'])) $entry['client_name'] = $client_data['client_short_name'];
+      // else if (!empty($client_data['client_full_name'])) $entry['client_name'] = $client_data['client_full_name'];
+      // else if (!empty($client_data['client_tight_name'])) $entry['client_name'] = $client_data['client_tight_name'];
+      // else if (!empty($client_data['client_cli_name'])) $entry['client_name'] = $client_data['client_cli_name'];
+      // 
       $entry['client_key'] = $client_key;
 
     }
@@ -434,6 +483,18 @@ class WorklogAugment {
       $client_projects_list = $project_lists_by_client[ $client_short_name ];
             
       $project = WorklogLookup::get_client_project_from_list($client_short_name,$title_category_tags_all);
+      
+      if (!empty($client_projects_list) && empty($project)) {
+        $culprit = $title_category_tags_all;
+        $culprit = array_diff($culprit,[ $entry['day_timestamp_ymd'], $entry['day_brackets_yyyymmdd'], $entry['category_brackets_yyyymmdd'] ]);
+        if (is_array($entry['timetracking_brackets_all'])) $culprit = array_diff($culprit,$entry['timetracking_brackets_all']);
+        $entry['check_warnings'][] = [
+          'warning_text' => 'No valid project for this client',
+          'warning_culprit' => $culprit,
+          'warning_line_number' => $entry['category_line_number'],
+        ];
+      }
+
       if (!empty($project)) {
             
         $client_project_data_key = 'Project-'.$client_short_name.'-'.$project;            
@@ -446,7 +507,7 @@ class WorklogAugment {
         }                 
         
         $client_project_data = $project_data_by_client_project[ $client_project_data_key ];
-        
+      
         $entry['client_project_key'] = null;
         $entry['client_project_name'] = @$client_project_data['name'] ?: $project;
         $entry['client_project_number'] = @$client_project_data['number'] ?: null;
@@ -477,7 +538,7 @@ class WorklogAugment {
       }
       
     }
-    
+        
     $count_sittings = [];
     $count_titles = [];
     
@@ -597,16 +658,32 @@ class WorklogAugment {
         $timetracking_last_timepoint = end($timetracking_timepoints_all);
         
         if ($timetracking_starttime != $timetracking_first_timepoint) {
-          $entry['check_warnings'][] = 'Title timepoint is not the earliest';
+          $entry['check_warnings'][] = [
+            'warning_text' => 'Times are not in order',
+            'warning_culprit' =>  $timetracking_brackets_all,
+            'warning_line_number' => $entry['title_line_number'],
+          ];
         }
-        if ($timetracking_endtime != $timetracking_last_timepoint && $timetracking_endtime != $timetracking_last_timepoint+(24*60*60)) {
-          $entry['check_warnings'][] = 'Final timepoint is not the latest: '.$timetracking_endtime.' vs '.$timetracking_last_timepoint;
+        else if ($timetracking_endtime != $timetracking_last_timepoint && $timetracking_endtime != $timetracking_last_timepoint+(24*60*60)) {
+          $entry['check_warnings'][] = [
+            'warning_text' => 'Times are not in order',
+            'warning_culprit' => $timetracking_brackets_all,
+            'warning_line_number' => $entry['title_line_number'],
+          ];
         }
         if ($timetracking_tracked < 0) {
-          $entry['check_warnings'][] = 'Time tracked is negative: '.$timetracking_tracked;
+          $entry['check_warnings'][] = [
+            'warning_text' => 'Time tracked is negative: '.$timetracking_tracked,
+            'warning_culprit' => $timetracking_brackets_all,
+            'warning_line_number' => $entry['title_line_number'],
+          ];
         }
-        if (count($timetracking_brackets_all)>1 && $timetracking_tracked == 0) {
-          $entry['check_warnings'][] = 'Time tracked adds up to zero: '.implode(' ',$timetracking_brackets_all);
+        if (count($timetracking_brackets_all)>0 && $timetracking_tracked == 0) {
+          $entry['check_warnings'][] = [
+            'warning_text' => 'Time tracked adds up to zero',
+            'warning_culprit' => $timetracking_brackets_all,
+            'warning_line_number' => $entry['title_line_number'],
+          ];
         }
 
         $entry['timetracking_brackets_all'] = $timetracking_brackets_all;
@@ -924,7 +1001,7 @@ class WorklogAugment {
       $count_tracked_hours_inited = isset($count_tracked_hours[$client_key]);      
       if ($count_tracked_hours_inited) {
         $entry['client_billing_tracked_hours'] = $count_tracked_hours[$client_key];
-        $entry['client_billing_multiplier'] = $entry['client_billing_tracked_hours'] / $entry['client_effort_tracked_hours'];
+        $entry['client_billing_multiplier'] = @($entry['client_billing_tracked_hours'] / $entry['client_effort_tracked_hours']) ?: 0;
       } 
       
       //

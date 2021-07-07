@@ -48,4 +48,18 @@ class WorklogNormalize {
     }
     return $array_unprefixed;
   }  
+  public static function array_keys_add_prefix($array,$prefix,$recursive=FALSE) {
+    if (!is_array($array)) return null;
+    if (empty($prefix)) return $array;
+    if (!is_string($prefix)) return $array;
+    $array_prefixed = [];
+    $prefix = trim(trim($prefix),'_-');
+    foreach($array as $k=>$v) {
+      $k_prefixed = $k;
+      $k_prefixed = preg_replace("/^".preg_quote($prefix)."/",'',$k_prefixed);
+      $k_prefixed = $prefix.'_'.$k_prefixed;
+      $array_prefixed[ $k_prefixed ] = $v;      
+    }
+    return $array_prefixed;
+  }    
 }

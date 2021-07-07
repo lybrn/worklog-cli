@@ -51,7 +51,14 @@ class WorklogLookup {
     }      
     
     if (empty($client_data_normalized) || !is_array($client_data_normalized)) return null;
-        
+    
+    if (empty($client_data_normalized['client_name'])) {
+      if (!empty($client_data_normalized['client_short_name'])) $client_data_normalized['client_name'] = $client_data_normalized['client_short_name'];
+      else if (!empty($client_data_normalized['client_full_name'])) $client_data_normalized['client_name'] = $client_data_normalized['client_full_name'];
+      else if (!empty($client_data_normalized['client_tight_name'])) $client_data_normalized['client_name'] = $client_data_normalized['client_tight_name'];
+      else if (!empty($client_data_normalized['client_cli_name'])) $client_data_normalized['client_name'] = $client_data_normalized['client_cli_name'];
+    }
+    
     return $client_data_normalized;
     
   }

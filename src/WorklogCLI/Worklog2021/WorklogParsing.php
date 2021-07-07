@@ -129,12 +129,21 @@ class WorklogParsing {
         
         $bracket_text_adjusted = preg_replace('/[^0-9\:]+/i','',$bracket_text);
         if (empty($bracket_text_adjusted)) continue;
+        $bracket_text_adjusted_no_ampm = $bracket_text_adjusted;
         if ($am) $bracket_text_adjusted .= 'am';
         else if ($pm) $bracket_text_adjusted .= 'pm';
         
+        
         $test_timestamp = strtotime( date('Y-m-d').' '.$bracket_text_adjusted );
+        $test_timestamp_no_ampm = strtotime( date('Y-m-d').' '.$bracket_text_adjusted_no_ampm );
         if (!empty($test_timestamp)) {
           $time_brackets[] = $bracket_text;     
+        }
+        // we want to include 24 hr times in here even though they are the wrong
+        // format. they wont properly evaluate to times, but that will allow them 
+        // to show up in 'check' command warning
+        else if (!empty($test_timestamp_no_ampm)) {
+          $time_brackets[] = $bracket_text;  
         }
         
         continue;
