@@ -129,7 +129,89 @@ class WorklogAugment {
 
     return $entries;
     
-  }  
+  } 
+  public static function add_invoicefilter_data($entries) {
+    
+    $invoice_key = WorklogArgs::get_invoice_number();
+    $invoice_data = WorklogLookup::get_invoice_details_array($invoice_key);
+
+    foreach($entries as &$entry) {
+      
+      $entry['invoicefilter_key'] = @$invoice_key ?: null;
+      $entry['invoicefilter_seq'] = $invoice_data['invoice_seq'];
+      $entry['invoicefilter_number'] = $invoice_data['invoice_number'];
+      $entry['invoicefilter_client'] = $invoice_data['invoice_client'];
+      $entry['invoicefilter_worker'] = $invoice_data['invoice_worker'];
+      $entry['invoicefilter_period'] = $invoice_data['invoice_period'];
+      $entry['invoicefilter_range'] = $invoice_data['invoice_range'];
+      $entry['invoicefilter_work_type'] = $invoice_data['invoice_work_type'];
+      $entry['invoicefilter_date'] = $invoice_data['invoice_date'];
+      $entry['invoicefilter_due'] = $invoice_data['invoice_due'];
+      
+    }
+    
+    return $entries;
+  
+  
+  }
+  public static function date_range_days($field_data,$rows) {
+    $timestamps = [];
+    foreach($rows as $row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['key'];
+      $columndata = $row[ $sortkey ][ $field_data['key'] ];
+      $timestamps[] = $columndata;
+    } 
+    sort($timestamps);
+    $highest = array_pop($timestamps);
+    $lowest = array_shift($timestamps);
+    $datediff = $highest-$lowest; 
+    $daysbetween = ceil($datediff / (60 * 60 * 24));
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['key'];
+      $row[$sortkey][$fieldkey] = $daysbetween;
+    }
+    return $rows;
+  } 
+  public static function date_range_weeks($field_data,$rows) {
+    $timestamps = [];
+    foreach($rows as $row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['key'];
+      $columndata = $row[ $sortkey ][ $field_data['key'] ];
+      $timestamps[] = $columndata;
+    } 
+    sort($timestamps);
+    $highest = array_pop($timestamps);
+    $lowest = array_shift($timestamps);
+    $datediff = $highest-$lowest; 
+    $weeksbetween = ceil($datediff / (60 * 60 * 24 * 7));
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['key'];
+      $row[$sortkey][$fieldkey] = $weeksbetween;
+    }
+    return $rows;
+  }    
+  public static function divide($field_data,$rows) {
+    foreach($rows as &$row) {
+      $sortkey = key($row);
+      $fieldkey = $field_data['key'];
+      $numeratorkey = @$field_data['colmap'][ $field_data['parent'] ] ?: null;
+      $numeratorvalue = @$row[$sortkey][$numeratorkey] ?: null;
+      $denomenatorkey = @$field_data['colmap'][ $field_data['column'] ] ?: null;
+      $denomenatorvalue = @$row[$sortkey][$denomenatorkey] ?: null;
+      if (is_numeric($numeratorvalue) && is_numeric($denomenatorvalue)) {
+        $divisionresult = (float)($numeratorvalue) / (float)($denomenatorvalue);  
+        $divisionresult = number_format($divisionresult,2);
+      } else {
+        $divisionresult = null;
+      }
+      $row[$sortkey][$fieldkey] = $divisionresult;
+    } 
+    return $rows;
+  }       
   public static function count($field_data,$rows) {
     $count_data = [];
     foreach($rows as &$row) {
@@ -499,7 +581,7 @@ class WorklogAugment {
             
         $client_project_data_key = 'Project-'.$client_short_name.'-'.$project;            
         if (!array_key_exists($client_project_data_key,$project_data_by_client_project)) {
-          $data_to_cache = current( CLI::get_note_data_by_keys( $client_project_data_key ) );;
+          $data_to_cache = current( WorklogDb::db( $client_project_data_key ) );;
           $data_to_cache = WorklogNormalize::normalize_array_keys($data_to_cache);
           $data_to_cache = WorklogNormalize::array_keys_remove_prefix($data_to_cache,'project');
           $project_data_by_client_project[ $client_project_data_key ] = $data_to_cache;
@@ -618,6 +700,74 @@ class WorklogAugment {
     return $entries;
     
   }
+  public static function add_worker_data($entries) {
+
+    foreach($entries as &$entry) {
+      
+      $worker_lookup = 'Lindsay Bernath';
+      
+      if (empty($worker_lookup) || !is_string($worker_lookup)) {
+        $entry['worker_key'] = null;
+        continue;
+      }
+      
+      $worker_data = WorklogLookup::get_worker_details_array($worker_lookup);
+      
+      if (empty($worker_data)) {
+        $entry['check_warnings'][] = [
+          'warning_text' => 'Worker not defined',
+          'warning_culprit' => $category,
+          'warning_line_number' => $entry['category_line_number'],
+        ];
+      }
+      
+      if (empty($worker_data) || !is_array($worker_data)) {
+        $entry['worker_key'] = null;
+        continue;
+      }
+      
+      foreach($worker_data as $key=>$value) {
+        $entry[$key] = $value;
+      }
+      
+      $worker_key = WorklogNormalize::normalize_key($entry['worker_full_name'],'-_','-');
+      
+      // $entry['worker_name'] = null;
+      // if (!empty($worker_data['worker_name'])) $entry['worker_name'] = $worker_data['worker_short_name'];
+      // else if (!empty($worker_data['worker_short_name'])) $entry['worker_name'] = $worker_data['worker_short_name'];
+      // else if (!empty($worker_data['worker_full_name'])) $entry['worker_name'] = $worker_data['worker_full_name'];
+      // else if (!empty($worker_data['worker_tight_name'])) $entry['worker_name'] = $worker_data['worker_tight_name'];
+      // else if (!empty($worker_data['worker_cli_name'])) $entry['worker_name'] = $worker_data['worker_cli_name'];
+      // 
+      $entry['worker_key'] = $worker_key;
+
+    }
+    
+    $count_sittings = [];
+    $count_titles = [];
+    
+    foreach($entries as &$entry) {
+      
+      $worker_key = $entry['worker_key'];
+      $title_key = $entry['title_key'];
+      
+      if (!empty($worker_key)) {
+        $count_sittings[$worker_key]++;        
+      }
+      if (!empty($worker_key) && !empty($title_key)) {
+        $count_titles[$worker_key][$title_key] = $title_key;
+      }
+    }
+    
+    foreach($entries as &$entry) {
+      $worker_key = $entry['worker_key'];
+      $title_key = $entry['title_key'];
+      $entry['worker_sittings'] = @$count_sittings[$worker_key] ?: null;
+      $entry['worker_titles'] = @count($count_titles[$worker_key]) ?: null;
+    }
+
+    return $entries;
+  }     
   public static function add_timetracking_data($entries) {
     
     foreach($entries as &$entry) {

@@ -29,12 +29,29 @@ class WorklogReports {
     
   public static function filter($entries,$fields) {
     
+    if (empty($entries)) return $entries;
+    if (empty($fields)) return $entries;
+
     $filtered = [];
+    
     if (is_array($entries)) foreach($entries as $index=>$entry) {
       foreach($fields as $name=>$value) {
+
         if (!array_key_exists($name,$entry)) continue 2;
-        if ($entry[$name]=='') continue 2;
-        if ($entry[$name]==null) continue 2;
+        if ($entry[$name]==='') continue 2;
+        if ($entry[$name]===null) continue 2;
+        if ($entry[$name]===false) continue 2;
+        
+        if (is_string($value)){
+          if (is_string($entry[$name]) && $entry[$name]!=$value) continue 2;
+          if (is_array($entry[$name]) && !in_array($value,$entry[$name])) continue 2;
+          // print_r([
+          //   'entry name' => $entry[$name],
+          //   'filter value' => $value,
+          // ]); 
+          // die("!");
+        }
+
       }
       $filtered[] = $entry;
     }
@@ -114,6 +131,24 @@ class WorklogReports {
     }
     
     return $flattened;
+  }
+  public static function rows($entries,$fields) {
+    
+    $report = WorklogReports::report($entries,$fields);
+    
+    foreach($report as $rowkey => &$row) {
+      foreach($row as $fieldkey => &$fieldvalue) {
+        if (count($fieldvalue) == 1) {
+          $row[$fieldkey] = current($fieldvalue);
+        } 
+        else if (count($fieldvalue) > 1) {
+          throw new Exception("More than one item for in '$fieldkey' in ".print_r($row,TRUE));
+        }
+      }
+    }
+    
+    return $report;
+    
   }
   public static function report($entries,$fields) {
 
@@ -202,6 +237,7 @@ class WorklogReports {
     
     $return = [];
     $pos = 0;
+    $colmap = [];
     foreach($fields as $key => $valueset) {
       if (empty($valueset)) continue;
       $field = [];
@@ -257,9 +293,15 @@ class WorklogReports {
         // return
         if (!empty($field)) {
           $field['key'] = implode('-',[ $field['as'], $field['var'],$field['pos'] ]);
+          $colmap[ $field['as'] ] = $field['key'];
           $return[] = $field; 
         }
       }
+    }
+    
+    foreach($return as &$field) {
+      $field['colmap'] = $colmap;
+      
     }
     return $return;
   }

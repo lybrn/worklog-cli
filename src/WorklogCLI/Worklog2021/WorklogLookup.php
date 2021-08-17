@@ -62,6 +62,58 @@ class WorklogLookup {
     return $client_data_normalized;
     
   }
+  public static function get_worker_details_array($worker_name) {
+    
+    if (empty($worker_name) || !is_string($worker_name)) return null;
+    
+    $worker_key = 'Worker-'.$worker_name;
+    
+    $worker_data = current( WorklogDB::db( $worker_key ) );
+
+    if (empty($worker_data) || !is_array($worker_data)) return null;
+
+    $worker_data_normalized = [];
+    
+    foreach($worker_data as $key=>$value) {
+      $normalized_key = WorklogNormalize::normalize_key($key,'- ','_');
+      $worker_data_normalized[ $normalized_key ] = $value;
+    }      
+    
+    if (empty($worker_data_normalized) || !is_array($worker_data_normalized)) return null;
+    
+    if (empty($worker_data_normalized['worker_name'])) {
+      if (!empty($worker_data_normalized['worker_short_name'])) $worker_data_normalized['worker_name'] = $worker_data_normalized['worker_short_name'];
+      else if (!empty($worker_data_normalized['worker_full_name'])) $worker_data_normalized['worker_name'] = $worker_data_normalized['worker_full_name'];
+      else if (!empty($worker_data_normalized['worker_tight_name'])) $worker_data_normalized['worker_name'] = $worker_data_normalized['worker_tight_name'];
+      else if (!empty($worker_data_normalized['worker_cli_name'])) $worker_data_normalized['worker_name'] = $worker_data_normalized['worker_cli_name'];
+    }
+    
+    return $worker_data_normalized;
+    
+  }
+  public static function get_invoice_details_array($invoice_name) {
+    
+    if (empty($invoice_name) || !is_string($invoice_name)) return null;
+    
+    $invoice_key = $invoice_name; //'Invoice-'.$invoice_name;
+    
+    $invoice_data = current( WorklogDB::db( $invoice_key ) );
+
+    if (empty($invoice_data) || !is_array($invoice_data)) return null;
+
+    $invoice_data_normalized = [];
+    
+    foreach($invoice_data as $key=>$value) {
+      $normalized_key = WorklogNormalize::normalize_key($key,'- ','_');
+      $invoice_data_normalized[ $normalized_key ] = $value;
+    }      
+    
+    if (empty($invoice_data_normalized) || !is_array($invoice_data_normalized)) return null;
+        
+    return $invoice_data_normalized;
+    
+  }
+  
   public static function get_client_projects_list($client_name) {
 
     if (empty($client_name) || !is_string($client_name)) return null;
