@@ -365,6 +365,7 @@ class WorklogAugment {
       $day_brackets_yyyymmdd = WorklogParsing::brackets_get_yyyymmdd($entry['day_brackets_all']);
       
       $entry['day_timestamp'] = $day_timestamp;
+      $entry['day_timestamp_ym'] = $day_timestamp ? date('Y-m',$day_timestamp) : '';
       $entry['day_timestamp_ymd'] = $day_timestamp ? date('Y-m-d',$day_timestamp) : '';
       $entry['day_brackets_yyyymmdd'] = $day_brackets_yyyymmdd;
       
@@ -800,6 +801,7 @@ class WorklogAugment {
         }
         
         $start_and_end_times = WorklogParsing::timepoints_get_starttime_and_endtime($timetracking_timepoints_all);
+        $day_timestamp = $entry['day_timestamp'];
         $timetracking_starttime = $start_and_end_times['starttime'];
         $timetracking_endtime = $start_and_end_times['endtime'];
         $timetracking_duration = $timetracking_endtime - $timetracking_starttime;
@@ -840,7 +842,9 @@ class WorklogAugment {
         $entry['timetracking_brackets_unknown'] = $timetracking_brackets_unknown;
         $entry['timetracking_timepoints_all'] = $timetracking_timepoints_all;
         $entry['timetracking_starttime'] = $timetracking_starttime;
+        $entry['timetracking_starttime_ymdhi'] = date('Y-m-d H:i',$day_timestamp+$timetracking_starttime-(24*60*60));
         $entry['timetracking_endtime'] = $timetracking_endtime;
+        $entry['timetracking_endtime_ymdhi'] = date('Y-m-d H:i',$day_timestamp+$timetracking_endtime-(24*60*60));
         $entry['timetracking_offset'] = $timetracking_offset;
         $entry['timetracking_tracked_time'] = $timetracking_tracked;
         $entry['timetracking_tracked_time_no_offset'] = $timetracking_duration;
@@ -877,6 +881,15 @@ class WorklogAugment {
       $entry['billingcost_tracked_hours'] = @$entry['effortcost_tracked_hours'] * $entry['billingcost_multiplier'] ?: 0.0;
       $entry['billingcost_total_cost'] = $entry['billingcost_tracked_hours'] * $entry['billingcost_hourly_rate'];
       $entry['billingcost_total_cost'] = Format::format_cost($entry['billingcost_total_cost']);
+
+      $entry['billingcost_subtotal_cost'] = $entry['billingcost_tracked_hours'] * $entry['billingcost_hourly_rate'];
+      $entry['billingcost_tax_ratio'] = '0.'.strtr($entry['client_tax_percent'],['%'=>'','0.'=>'',' '=>'']);
+      $entry['billingcost_tax_cost'] = (float) $entry['billingcost_tax_ratio'] * (float) $entry['billingcost_subtotal_cost'];
+      $entry['billingcost_invoicetotal_cost'] = $entry['billingcost_subtotal_cost'] + $entry['billingcost_tax_cost'];
+
+      $entry['billingcost_subtotal_cost'] = Format::format_cost($entry['billingcost_total_cost']);
+      $entry['billingcost_tax_cost'] = $entry['billingcost_subtotal_cost'] * $entry['billingcost_tax_ratio'];
+      $entry['billingcost_invoicetotal_cost'] = Format::format_cost($entry['billingcost_total_cost']);
       
     }
     

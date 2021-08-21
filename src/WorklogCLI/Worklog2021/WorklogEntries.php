@@ -73,6 +73,7 @@ class WorklogEntries {
                 
               $bare_entry_notes = [];
               $bare_entry_notes_brackets_all = [];
+              $bare_entry_notes_text_all = [];
               
               // note rows
               if (is_array($title_row['rows'])) {
@@ -98,6 +99,7 @@ class WorklogEntries {
                   $bare_entry_note['note_line_number'] = $note_line_number;
 
                   $bare_entry_notes[] = $bare_entry_note;
+                  $bare_entry_notes_text_all[] = $note_text;
                   
                   if (is_array($note_brackets))
                     $bare_entry_notes_brackets_all = array_merge($bare_entry_notes_brackets_all,$note_brackets);
@@ -106,6 +108,8 @@ class WorklogEntries {
               
               $bare_entry['note_rows'] = $bare_entry_notes;
               $bare_entry['note_brackets_all'] = $bare_entry_notes_brackets_all;
+              $bare_entry['note_text_all'] = $bare_entry_notes_text_all;
+              $bare_entry['note_text_paragraph'] = ltrim(implode('. ',$bare_entry_notes_text_all).'.','.');
               
               $bare_data[] = $bare_entry;
               
