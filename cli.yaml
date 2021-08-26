@@ -1,8 +1,23 @@
 cli:
+  billing2021: \WorklogCLI\Cli\CliBilling2021
+  brackets2021: \WorklogCLI\Cli\CliBrackets2021 
+  cats2021: \WorklogCLI\Cli\CliCategories2021 
+  check-days2021: \WorklogCLI\Cli\CliCheckDays2021
+  check2021: \WorklogCLI\Cli\CliCheck2021
+  clients2021: \WorklogCLI\Cli\CliClients2021 
+  entries2021: \WorklogCLI\Cli\CliEntries2021 
+  invoice-data2021: \WorklogCLI\Cli\CliInvoiceData2021 
+  notes2021: \WorklogCLI\Cli\CliNotes2021 
+  projects2021: \WorklogCLI\Cli\CliProjects2021 
+  times2021: \WorklogCLI\Cli\CliTimes2021
+  titles2021: \WorklogCLI\Cli\CliTitles2021
+  totals2021: \WorklogCLI\Cli\CliTotals2021
   billing: \WorklogCLI\Cli\CliBilling
   brackets: \WorklogCLI\Cli\CliBrackets 
+  data: \WorklogCLI\Cli\CliData 
+  dbilling: \WorklogCLI\Cli\CliDBilling
+  db: \WorklogCLI\Cli\CliDb 
   cats: \WorklogCLI\Cli\CliCategories 
-  check-days: \WorklogCLI\Cli\CliCheckDays
   config: \WorklogCLI\Cli\CliConfig
   entries: \WorklogCLI\Cli\CliEntries 
   inbox: \WorklogCLI\Cli\CliInbox 
@@ -13,9 +28,10 @@ cli:
   messages: \WorklogCLI\Cli\CliMessages
   notedata: \WorklogCLI\Cli\CliNoteData 
   notedatatable: \WorklogCLI\Cli\CliNoteDataTable 
-  notes: \WorklogCLI\Cli\CliNotes 
+  notes: \WorklogCLI\Cli\CliNotes   
   statuses: \WorklogCLI\Cli\CliStatuses 
   template-out: \WorklogCLI\Cli\CliTemplateOut 
+  test-path: \WorklogCLI\Cli\CliTestPath 
   times: \WorklogCLI\Cli\CliTimes
   titles: \WorklogCLI\Cli\CliTitles 
   totals: \WorklogCLI\Cli\CliTotals 
