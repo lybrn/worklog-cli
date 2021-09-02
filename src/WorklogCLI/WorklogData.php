@@ -57,13 +57,12 @@ class WorklogData {
     // $timeline['hperweek'] = Format::format_hours( $timeline['hours'] / $weeks );
     // return $timeline;
   }
-  public static function get_entries_data2($parsed,$args=array()) {
-    
+  public static function get_entries_data2($parsed,$args=array(),$invoice=array()) {
+
     $entries = array();
     foreach($parsed as $k=>$item) {
-      $rate = Format::format_cost($item['client-rate']);
-      $hours = Format::format_hours($item['total']);
-      $total = is_numeric($rate) ? Format::format_cost($hours * $rate) : 0;
+      $rate = $item['client-rate'];
+      $hours = $item['total'];
       $title = $item['title'];
       $task = $item['client-task'];
       $project = $item['client-project'];
@@ -76,10 +75,14 @@ class WorklogData {
       $entry['task'] = $task;
       $entry['title'] = $title;
       $entry['notes'] = $notes;
-      $entry['rate'] = $rate;
+      
+      if (!empty($invoice['rate'])) $rate = $invoice['rate'];
+      if (!empty($invoice['multiplier'])) $hours = (float) $hours * (float)  $invoice['multiplier'];
+      
+      $entry['rate'] = Format::format_cost($rate);
+      $entry['hours'] = Format::format_hours($hours);
+      $total = is_numeric($rate) ? Format::format_cost($hours * $rate) : 0;
       $entry['total'] = $total;
-
-      $entry['hours'] = $hours;
       $sortkey = strtotime($entry['started_at']).'-'.$k;
       $entries[ $sortkey ] = $entry;
     }
@@ -139,7 +142,7 @@ class WorklogData {
     $timeline['hperweek'] = Format::format_hours( $timeline['hours'] / $weeks );
     return $timeline;
   }
-  public static function get_pricing_data2($parsed) {
+  public static function get_pricing_data2($parsed, $invoice=[]) {
 
     $pricing = array(
       'hours'=>0.0,
@@ -149,14 +152,23 @@ class WorklogData {
       'total'=>0.0,
     );
 
-    $firstitem = current($parsed);
+    $firstitem = reset($parsed);
     $client_rate = Format::format_cost( $firstitem['client-rate'] );
     $taxpercent = (float) trim( $firstitem['client-taxpercent'] ,'%') / 100.0;
 
     // calculate hours and subtotal
     foreach($parsed as $item) {
       if (!empty($item['hours'])) $pricing['hours'] += Format::format_hours( $item['hours_multiplied'] );
-      if (!empty($item['subtotal'])) $pricing['subtotal'] += Format::format_cost( $item['subtotal'] );
+      if (!empty($item['subtotal'])) $pricing['subtotal'] += Format::format_cost( $item['subtotal'] );      
+    }
+
+    if (!empty($invoice['multiplier'])) {
+      $pricing['hours'] = (float) $pricing['hours'] * (float)  $invoice['multiplier'];      
+      $pricing['subtotal'] = (float) $pricing['hours'] * (float) $client_rate;
+
+    }
+    if (!empty($invoice['rate'])) {
+      $pricing['subtotal'] = (float) $pricing['hours'] * (float) $invoice['rate'];      
     }
 
     // calculate tax and total
@@ -181,7 +193,7 @@ class WorklogData {
       'total'=>0.0,
     );
 
-    $firstitem = current($parsed);
+    $firstitem = reset($parsed);
     $clientkey = Format::normalize_key( $firstitem['client'] );
     $rate = (float) trim($clients[ $clientkey ]['rate'],'$');
     $taxpercent = (float) trim($clients[ $clientkey ]['taxpercent'],'%') / 100.0;
@@ -271,8 +283,11 @@ class WorklogData {
     }
     return $invoices;
   }
-  public static function get_projects_data2($parsed) {
+  public static function get_projects_data2($parsed,$invoice=[]) {
     $projects = array();
+    // firstitem
+    $firstitem = reset($parsed);
+    $client_rate = $firstitem['client-rate']; 
     // projects
     foreach($parsed as $item) {
       $projectkey = Format::normalize_key( $item['client-project'] );
@@ -288,10 +303,23 @@ class WorklogData {
     // entries
     foreach($parsed as $item) {
       $projectkey = Format::normalize_key( $item['client-project'] );
+      $projects[$projectkey]['projectkey'] = $projectkey;
       $projects[$projectkey]['hours'] = (float) $projects[$projectkey]['hours'] + (float) $item['total'];
       $projects[$projectkey]['hours'] = Format::format_hours($projects[$projectkey]['hours']);
       $projects[$projectkey]['subtotal'] = (float) $projects[$projectkey]['subtotal'] + (float) $item['subtotal'];
       $projects[$projectkey]['subtotal'] = Format::format_cost($projects[$projectkey]['subtotal']);
+    }
+    // invoice data
+    foreach($projects as $project) {
+      $projectkey = $project['projectkey'];
+      if (!empty($invoice['multiplier'])) {
+        $projects[$projectkey]['hours'] = (float) $projects[$projectkey]['hours'] * (float)  $invoice['multiplier'];      
+        $projects[$projectkey]['subtotal'] = (float) $projects[$projectkey]['hours'] * (float) $client_rate;
+
+      }
+      if (!empty($invoice['rate'])) {
+        $projects[$projectkey]['subtotal'] = (float) $projects[$projectkey]['hours'] * (float) $invoice['rate'];      
+      }
     }
     // sort
     $sorted = array();
@@ -342,8 +370,10 @@ class WorklogData {
     return $sorted;
 
   }
-  public static function get_tasks_data2($parsed) {
+  public static function get_tasks_data2($parsed,$invoice=[]) {
     $tasks = array();
+    $firstitem = reset($parsed);
+    $client_rate = Format::format_cost( $firstitem['client-rate'] );
     // tasks
     foreach($parsed as $item) {
       $taskkey = Format::normalize_key( $item['client-project'].'-'.$item['title'] );
@@ -360,11 +390,23 @@ class WorklogData {
     // hours and status
     foreach($parsed as $item) {
       $taskkey = Format::normalize_key( $item['client-project'].'-'.$item['title'] );
+      $tasks[ $taskkey ]['taskkey'] = $taskkey;
       $tasks[ $taskkey ]['status'] = $item['client-status'];
       $tasks[ $taskkey ]['hours'] += Format::format_hours($item['total']);
       $tasks[ $taskkey ]['subtotal'] += Format::format_cost($item['subtotal']);
       $tasks[ $taskkey ]['sittings'] += 1;
     }
+    // invoice data
+    foreach($tasks as $task) {
+      $taskkey = $task['taskkey'];
+      if (!empty($invoice['multiplier'])) {
+        $tasks[$taskkey]['hours'] = (float) $tasks[$taskkey]['hours'] * (float)  $invoice['multiplier'];      
+        $tasks[$taskkey]['subtotal'] = (float) $tasks[$taskkey]['hours'] * (float) $client_rate;
+      }
+      if (!empty($invoice['rate'])) {
+        $tasks[$taskkey]['subtotal'] = (float) $tasks[$taskkey]['hours'] * (float) $invoice['rate'];      
+      }
+    }    
     // sort
     $sorted = array();
     foreach($tasks as $task) {
@@ -419,11 +461,11 @@ class WorklogData {
     return $sorted;
 
   }
-  public static function get_grouped_data2($parsed) {
+  public static function get_grouped_data2($parsed,$invoice=[]) {
 
     $grouped_data = array();
-    $projects = WorklogData::get_projects_data2($parsed);
-    $tasks = WorklogData::get_tasks_data2($parsed);
+    $projects = WorklogData::get_projects_data2($parsed,$invoice);
+    $tasks = WorklogData::get_tasks_data2($parsed,$invoice);
     // projects
     foreach($projects as $project) {
       $projectkey = Format::normalize_key($project['name']);
@@ -902,7 +944,7 @@ class WorklogData {
               $entry['total'] = $hours_multiplied;
               $entry['$'] = is_numeric($rate) ? $hours_multiplied * $rate : 0;
               if (!empty($cost_brackets))  {
-                print_r($cost_brackets);
+                // print_r($cost_brackets);
                 $fixedcost = array_sum($cost_brackets);
                 $entry['$'] = $fixedcost;
                 $entry['subtotal'] = $fixedcost;

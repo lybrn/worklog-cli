@@ -527,12 +527,12 @@ class WorklogSummary {
       
       $invoice = array(
         'invoice' => array(),
-        'client' => array(),
-        'worker'=>array(),
-        'entries' => array(),
         'pricing'=>array(),
         'timeline'=>array(),
+        'client' => array(),
+        'worker'=>array(),
         'projects' => array(),
+        'entries' => array(),
       );
       
       // info
@@ -546,10 +546,10 @@ class WorklogSummary {
       $filter_args[] = '$';
       
       $parsed = CLI::get_filtered_data( $filter_args );
-      $invoice['entries'] = WorklogData::get_entries_data2($parsed,$filter_args);
-      $invoice['pricing'] = WorklogData::get_pricing_data2($parsed);
-      $invoice['timeline'] = WorklogData::get_timeline_data($parsed,$filter_args);
-      $invoice['projects'] = WorklogData::get_grouped_data2($parsed);
+      $invoice['entries'] = WorklogData::get_entries_data2($parsed,$filter_args,$invoice_data);
+      $invoice['pricing'] = WorklogData::get_pricing_data2($parsed,$invoice_data);
+      $invoice['timeline'] = WorklogData::get_timeline_data($parsed,$filter_args,$invoice_data);
+      $invoice['projects'] = WorklogData::get_grouped_data2($parsed,$invoice_data);
           
       return $invoice;
       

@@ -312,7 +312,12 @@ class CLI {
     // add client or category
     if (!empty($invoice_data['category'])) 
       $filter_args[] = Format::normalize_key($invoice_data['category']);
-    else if (!empty($invoice_data['client'])) 
+    else if (!empty($invoice_data['filter'])) {
+      $invoice_filter_args = explode(' ',trim($invoice_data['filter'],' '));
+      foreach($invoice_filter_args as $invoice_filter_arg)
+        $filter_args[] = Format::normalize_key($invoice_filter_arg);
+    }
+    else if (!empty($invoice_data['client']))
       $filter_args[] = Format::normalize_key($invoice_data['client']);
     if (!empty($invoice_data['project'])) {
       $projects = explode(' ',$invoice_data['project']);
@@ -326,7 +331,7 @@ class CLI {
     $range = explode(' ',$invoice_data['range']);
     foreach($range as $range_point) 
       if (!empty($range_point)) $filter_args[] = $range_point;
-    // return filter arguments
+    // return filter arguments    
     return $filter_args;
   }
   public static function op_args() {
