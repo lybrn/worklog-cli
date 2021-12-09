@@ -8,44 +8,75 @@ class WorklogFilter {
     if (empty($options)) return $parsed;
     $filtered = array();
     
-    $include_brackets = [];
-    $exclude_brackets = [];
+    $brackets_to_require = [];
+    $brackets_to_exclude = [];
+    $brackets_to_include = [];
     if (!is_null($options['brackets'])) {
       foreach($options['brackets'] as $bracket) {
-        if (substr($bracket,0,1)=='-') {
-          $exclude_brackets[] = substr($bracket,1);
+        if (substr($bracket,0,1)=='+') {
+          $brackets_to_include[] = substr($bracket,1);
+        } else if (substr($bracket,0,1)=='-') {
+          $brackets_to_exclude[] = substr($bracket,1);
         } else {
-          $include_brackets[] = $bracket;
+          $brackets_to_require[] = $bracket;
         }
       }
     }
-      
+    
     foreach($parsed as $item) {
       if (!is_null($options['categories'])) {
+        $filter_out_client = false;
         $client = WorklogFilter::normalize($item['client']);
-        if (!in_array($client,$options['categories'])) { continue; }
+        if (!in_array($client,$options['categories'])) { $filter_out_client = true; }
       }
       // if (!is_null($options['task'])) {
       //   $task = WorklogFilter::normalize($item['title']);
       //   if ($task!=$options['task']) continue;
       // }
       //
-      if (!empty($include_brackets)) {
-        $include = false;
+      if (!empty($brackets_to_require)) {
+        $this_bracket_is_required = false;
+        foreach($item['brackets'] as $bracket) {
+          $client = WorklogFilter::normalize($item['client']);
+          $bracket = WorklogFilter::normalize($bracket);
+          if (
+            in_array($bracket,$brackets_to_require) ||
+            in_array($client.'-'.$bracket,$brackets_to_require)
+          ) { $this_bracket_is_required = true; break; }
+        }
+      }
+      if (!empty($brackets_to_exclude)) {
+        $this_bracket_is_excluded = false;
         foreach($item['brackets'] as $bracket) {
           $bracket = WorklogFilter::normalize($bracket);
-          if (in_array($bracket,$include_brackets)) { $include = true; break; }
+          if (in_array($bracket,$brackets_to_exclude)) { $this_bracket_is_excluded = true; break; }
         }
-        if (!$include) { continue; }
       }
-      if (!empty($exclude_brackets)) {
-        $exclude = false;
+      if (!empty($brackets_to_include)) {
+        $this_bracket_is_included = false;
         foreach($item['brackets'] as $bracket) {
           $bracket = WorklogFilter::normalize($bracket);
-          if (in_array($bracket,$exclude_brackets)) { $exclude = true; break; }
+          if (in_array($bracket,$brackets_to_include)) { $this_bracket_is_included = true; break; }
         }
-        if ($exclude) { continue; }
       }
+      
+      if (!is_null($options['categories']) && !empty($brackets_to_include)) {
+        if ($filter_out_client && !$this_bracket_is_included) { continue; }
+      }
+      if (!is_null($options['categories']) && empty($brackets_to_include)) {
+        if ($filter_out_client) { continue; }
+      }
+      if (!empty($brackets_to_require) && !empty($brackets_to_include)) {
+        if (!$this_bracket_is_required && !$this_bracket_is_included) { continue; }
+      }
+      if (!empty($brackets_to_require) && empty($brackets_to_include)) {
+        if (!$this_bracket_is_required) { continue; }
+      }
+      if (!empty($brackets_to_exclude)) {
+        if ($this_bracket_is_excluded) { continue; }
+      }
+
+      
       if (!is_null($options['range'])) {
         if ($item['started_at'] < $options['range'][0]) { continue; }
         if ($item['started_at'] > $options['range'][1]) { continue; }
@@ -167,6 +198,7 @@ class WorklogFilter {
     if (!is_null($month)) return $month;
   }
   public static function args_get_categories($data,$args) {
+    $client_bracket_list = WorklogFilter::client_brackets_list($data);
     $category_list = WorklogFilter::category_list($data);
     // check if each category has client data associated
     $clientnames_list = [];
@@ -192,6 +224,7 @@ class WorklogFilter {
     $categories = [];
     foreach($args as $arg) {
       // dont consider args that are valid datetime strings (like "today")
+      $pair = explode('-',$arg,2);
       $arg_is_valid_datetime = !empty(strtotime($arg));
       if ($arg_is_valid_datetime) continue;
       $arg = WorklogFilter::normalize($arg);
@@ -200,6 +233,19 @@ class WorklogFilter {
       }
       else if (!empty($clientnames_list[$arg])) {
         $categories[] = $clientnames_list[$arg] ;
+      }
+      else if (count($pair)==2) {
+        
+        $pair_has_client_prefix = !empty($clientnames_list[$pair[0]]);
+        $pair_has_category_suffix = in_array($pair[1],$category_list);
+
+        print_r(compact('pair_has_client_prefix','pair_has_category_suffix'));
+        print_r($client_bracket_list);
+        
+        if ($pair_has_client_prefix && $pair_has_category_suffix) {
+          $categories[] = $clientnames_list[$pair[0]].'-'.$pair[1];
+        }
+        
       }
     }      
     return $categories;
@@ -228,9 +274,12 @@ class WorklogFilter {
     $brackets = [];
     foreach($args as $arg) {
       $is_negative = substr($arg,0,1)=='-';
+      $is_positive = substr($arg,0,1)=='+';
       $arg = WorklogFilter::normalize($arg);
       if (in_array($arg,$bracket_list)) {
-        $brackets[] = $is_negative ? '-'.$arg : $arg;
+        if ($is_negative) { $brackets[] = '-'.$arg; }
+        else if ($is_positive) { $brackets[] = '+'.$arg; }
+        else { $brackets[] = $arg; }
       }
     }   
     return $brackets;   
@@ -254,6 +303,18 @@ class WorklogFilter {
     $rows = array_values($worklog_brackets);
     return $rows;  
   }  
+  public static function client_brackets_list($data) {
+    $worklog_brackets = array();
+    if (is_array($data)) foreach($data as $data => $item) {
+      $brackets = @$item['brackets'] ?: array();
+      foreach($brackets as $bracket) {
+        $clientkey = WorklogFilter::normalize($item['client']);
+        $bracketkey = WorklogFilter::normalize($bracket);
+        $worklog_brackets[ $clientkey ][ $bracketkey ] = $key;
+      }
+    }
+    return $rows;  
+  }    
   public static function category_list($data) {
     $worklog_categories = array();
     if (is_array($data)) foreach($data as $data => $item) {
