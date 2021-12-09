@@ -18,8 +18,10 @@ class WorklogSummary {
     
     // clients
     $clients = WorklogData::get_clients_data2($data) ;            
+    
     if (count($clients) != 1) 
       throw new Exception("Clients found: ".count($clients));
+    
     $return['client'] = current($clients); 
     
     // pricing
@@ -799,6 +801,7 @@ class WorklogSummary {
       foreach($parsed as $item) {
                 
         $row = array();
+        $row['date'] = $item['date'];
         $row['line'] = $item['line_number'];
         $row['client'] = $item['client'];
         $row['note'] = '### '.$item['title'];
@@ -809,6 +812,7 @@ class WorklogSummary {
         
         foreach($item['notes'] as $note_line_number => $note_text) {
           $row = array();
+          $row['date'] = $item['date'];
           $row['line'] = $note_line_number; //$item['line_number'];
           $row['client'] = $item['client'];
           $row['note'] = '+ '.$note_text;
@@ -818,6 +822,7 @@ class WorklogSummary {
         }
 
         $row = array();
+        $row['date'] = $item['date'];
         $row['line'] = $note_line_number+1;
         $row['client'] = $item['client'];
         $row['note'] = ' ';
