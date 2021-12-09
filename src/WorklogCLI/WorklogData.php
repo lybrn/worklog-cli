@@ -59,32 +59,58 @@ class WorklogData {
   }
   public static function get_entries_data2($parsed,$args=array(),$invoice=array()) {
 
+    // init array
     $entries = array();
+    
+    // gather data related to current invoice, if passed
+    if (!empty($invoice)) {
+      // details provided directly in invoice
+      $invoice_fixed_rate = @$invoice['rate'] ?: null;
+      $invoice_fixed_multiplier = @$invoice['multiplier'] ?: null;
+      $invoice_fixed_taxratio = @$invoice['taxratio'] ?: null;
+      // details provided by invoice client
+      $clients = WorklogData::get_clients_data2($parsed);
+      $invoice_client_key = @$invoice['client'] ?: null;
+      $invoice_client_key = Format::normalize_key( $invoice_client_key );
+      $invoice_client = $clients[ $invoice_client_key ];
+      // rate and taxpercent
+      $invoice_client_rate = (float) trim($clients[ $invoice_client_key ]['rate'],'$');
+      $invoice_client_taxratio = (float) trim($clients[ $invoice_client_key ]['taxpercent'],'%') / 100.0;
+    }
+
+    // loop through items
     foreach($parsed as $k=>$item) {
       
+      $item_client_rate = Format::format_cost( $item['client-rate'] );
+      $item_client_taxratio = (float) trim( $item['client-taxratio'] ,'%') / 100.0;
+
+      $item_hours = Format::format_hours( $item['hours_multiplied'] );
+      $item_project_key = Format::normalize_key($item['client-project']);
+      
+      // set item rate
+      $item_rate = null; 
+      if ($item_client_rate) $item_rate = $item_client_rate;
+      if ($invoice_client_rate) $item_rate = $invoice_client_rate;
+      if ($invoice_fixed_rate) $item_rate = $invoice_fixed_rate;
+      if (empty($item_rate)) die("Could not find an item rate");
+      
+      $item_subtotal = (float) $item_hours * (float) $item_rate;
+            
+      if (is_array($invoice_fixed_multiplier)) {
+        $invoice_fixed_multiplier = $invoice_fixed_multiplier[ $item_project_key ] ?: null;  
+      }
+      if (!empty($invoice_fixed_multiplier)) {
+        $item_hours = (float) $item_hours * (float) $invoice_fixed_multiplier; 
+        $item_hours = Format::format_hours( $item_hours );
+        $item_subtotal = (float) $item_hours * (float) $item_rate;
+        $item_subtotal = Format::format_cost( $item_subtotal );
+      }
+      
       $item_started_at = $item['started_at'];
-      $item_rate = $item['client-rate'];
-      $item_hours = $item['total'];
       $item_title = $item['title'];
       $item_task = $item['client-task'];
       $item_project = $item['client-project'];
-      $item_project_key = Format::normalize_key($item['client-project']);
       $item_notes = implode(". ",$item['notes']).'.';
-      
-      $invoice_rate = @$invoice['rate'] ?: null;
-      $invoice_multiplier = @$invoice['multiplier'] ?: null;
-      
-      if (is_array($invoice_multiplier)) {
-        $invoice_multiplier = $invoice_multiplier[ $item_project_key ] ?: null;  
-      }
-      if (!empty($invoice_multiplier)) {
-        $item_hours = (float) $item_hours * (float) $invoice_multiplier;      
-        $item_subtotal = (float) $item_hours * (float) $item_rate;
-      }
-      if (!empty($invoice_rate)) {
-        $item_rate = $invoice_rate;
-        $item_subtotal = (float) $item_hours * (float) $item_rate;      
-      }
       
       $entry = array();
       $entry['started_at'] = $item_started_at;
@@ -94,9 +120,9 @@ class WorklogData {
       $entry['task'] = $item_task;
       $entry['title'] = $item_title;
       $entry['notes'] = $item_notes;      
-      $entry['rate'] = Format::format_cost($item_rate);
-      $entry['hours'] = Format::format_hours($item_hours);
-      $entry['total'] = is_numeric($item_rate) ? Format::format_cost($item_hours * $item_rate) : 0;;
+      $entry['rate'] = Format::format_cost( $item_rate );
+      $entry['hours'] = Format::format_hours( $item_hours );
+      $entry['total'] = $item_subtotal;
       
       $sortkey = strtotime($item_started_at).'-'.$k;
       $entries[ $sortkey ] = $entry;
@@ -158,7 +184,8 @@ class WorklogData {
     return $timeline;
   }
   public static function get_pricing_data2($parsed, $invoice=[]) {
-
+    
+    // init array
     $pricing = array(
       'hours'=>0.0,
       'subtotal'=>0.0,
@@ -166,48 +193,68 @@ class WorklogData {
       'taxpercent'=>0.0,
       'total'=>0.0,
     );
-
-    $firstitem = reset($parsed);
-    $client_rate = Format::format_cost( $firstitem['client-rate'] );
-    $taxpercent = (float) trim( $firstitem['client-taxpercent'] ,'%') / 100.0;
+    
+    // gather data related to current invoice, if passed
+    if (!empty($invoice)) {
+      // details provided directly in invoice
+      $invoice_fixed_rate = @$invoice['rate'] ?: null;
+      $invoice_fixed_multiplier = @$invoice['multiplier'] ?: null;
+      $invoice_fixed_taxratio = @$invoice['taxratio'] ?: null;
+      // details provided by invoice client
+      $clients = WorklogData::get_clients_data2($parsed);
+      $invoice_client_key = @$invoice['client'] ?: null;
+      $invoice_client_key = Format::normalize_key( $invoice_client_key );
+      $invoice_client = $clients[ $invoice_client_key ];
+      // rate and taxpercent
+      $invoice_client_rate = (float) trim($clients[ $invoice_client_key ]['rate'],'$');
+      $invoice_client_taxratio = (float) trim($clients[ $invoice_client_key ]['taxpercent'],'%') / 100.0;
+    }
 
     // calculate hours and subtotal
     foreach($parsed as $item) {
       
+      $item_client_rate = Format::format_cost( $item['client-rate'] );
+      $item_client_taxratio = (float) trim( $item['client-taxratio'] ,'%') / 100.0;
+
       $item_hours = Format::format_hours( $item['hours_multiplied'] );
-      $item_rate = Format::format_cost($item['client-rate']);
-      $item_subtotal = Format::format_cost( $item['subtotal'] );
       $item_project_key = Format::normalize_key($item['client-project']);
       
-      $invoice_rate = @$invoice['rate'] ?: null;
-      $invoice_multiplier = @$invoice['multiplier'] ?: null;
-      
-      if (is_array($invoice_multiplier)) {
-        $invoice_multiplier = $invoice_multiplier[ $item_project_key ] ?: null;  
+      // set item rate
+      $item_rate = null; 
+      if ($item_client_rate) $item_rate = $item_client_rate;
+      if ($invoice_client_rate) $item_rate = $invoice_client_rate;
+      if ($invoice_fixed_rate) $item_rate = $invoice_fixed_rate;
+      if (empty($item_rate)) die("Could not find an item rate");
+            
+      $item_subtotal = (float) $item_hours * (float) $item_rate;
+            
+      if (is_array($invoice_fixed_multiplier)) {
+        $invoice_fixed_multiplier = $invoice_fixed_multiplier[ $item_project_key ] ?: null;  
       }
-      if (!empty($invoice_multiplier)) {
-        $item_hours = (float) $item_hours * (float) $invoice_multiplier;      
+      if (!empty($invoice_fixed_multiplier)) {
+        $item_hours = (float) $item_hours * (float) $invoice_fixed_multiplier; 
+        $item_hours = Format::format_hours( $item_hours );
         $item_subtotal = (float) $item_hours * (float) $item_rate;
-      }
-      if (!empty($invoice_rate)) {
-        $item_rate = $invoice_rate;
-        $item_subtotal = (float) $item_hours * (float) $item_rate;      
+        $item_subtotal = Format::format_cost( $item_subtotal );
       }
       
-      if (!empty($item['hours'])) $pricing['hours'] += $item_hours;
-      if (!empty($item['subtotal'])) $pricing['subtotal'] += $item_subtotal;  
+      if (!empty($item['hours'])) $pricing['hours'] += Format::format_hours( $item_hours );
+      if (!empty($item['subtotal'])) $pricing['subtotal'] += Format::format_cost( $item_subtotal );  
       
     }
 
     // calculate tax and total
-    $pricing['tax'] = Format::format_cost( $pricing['subtotal'] * $taxpercent );
-    $pricing['total'] = Format::format_cost( $pricing['subtotal'] + $pricing['tax'] );
-
+    $pricing['taxpercent'] = (float) $invoice_client_taxratio;
+    $pricing['tax'] = (float) $pricing['subtotal'] * (float) $pricing['taxpercent'];
+    $pricing['tax'] = Format::format_cost_roundup( $pricing['tax'] );
+    $pricing['total'] = (float) $pricing['subtotal'] + (float) $pricing['tax'];
+    $pricing['total'] = Format::format_cost( $pricing['total'] );
+    
     // format values
     $pricing['hours'] = Format::format_hours( $pricing['hours'] );
     $pricing['subtotal'] = Format::format_cost( $pricing['subtotal'] , array('comma'=>TRUE) );
-    $pricing['tax'] = Format::format_cost( $pricing['tax'] , array('comma'=>TRUE) );
-    $pricing['taxpercent'] = Format::format_cost( $taxpercent );
+    $pricing['tax'] = Format::format_cost_roundup( $pricing['tax'] , array('comma'=>TRUE) );
+    $pricing['taxpercent'] = Format::format_cost( $pricing['taxpercent'] );
     $pricing['total'] = Format::format_cost( $pricing['total'] , array('comma'=>TRUE) );
 
     return $pricing;
@@ -312,10 +359,24 @@ class WorklogData {
     return $invoices;
   }
   public static function get_projects_data2($parsed,$invoice=[]) {
+    
+    // init array
     $projects = array();
-    // firstitem
-    $firstitem = reset($parsed);
-    $client_rate = $firstitem['client-rate']; 
+    
+    // gather data related to current invoice, if passed
+    if (!empty($invoice)) {
+      // details provided directly in invoice
+      $invoice_fixed_rate = @$invoice['rate'] ?: null;
+      $invoice_fixed_multiplier = @$invoice['multiplier'] ?: null;
+      // details provided by invoice client
+      $clients = WorklogData::get_clients_data2($parsed);
+      $invoice_client_key = @$invoice['client'] ?: null;
+      $invoice_client_key = Format::normalize_key( $invoice_client_key );
+      $invoice_client = $clients[ $invoice_client_key ];
+      // rate and taxpercent
+      $invoice_client_rate = (float) trim($clients[ $invoice_client_key ]['rate'],'$');
+    }
+    
     // projects
     foreach($parsed as $item) {
       $projectkey = Format::normalize_key( $item['client-project'] );
@@ -331,35 +392,40 @@ class WorklogData {
     // entries
     foreach($parsed as $item) {
       
-      $item_hours = Format::format_hours($item['total']);
-      $item_subtotal = Format::format_cost($item['subtotal']);
-      $item_project_key = Format::normalize_key( $item['client-project'] );
+      $item_client_rate = Format::format_cost( $item['client-rate'] );
+      $item_client_taxratio = (float) trim( $item['client-taxratio'] ,'%') / 100.0;
+
+      $item_hours = Format::format_hours( $item['hours_multiplied'] );
+      $item_project_key = Format::normalize_key($item['client-project']);
       
-      $invoice_rate = @$invoice['rate'] ?: null;
-      $invoice_multiplier = @$invoice['multiplier'] ?: null;
+      // set item rate
+      $item_rate = null; 
+      if ($item_client_rate) $item_rate = $item_client_rate;
+      if ($invoice_client_rate) $item_rate = $invoice_client_rate;
+      if ($invoice_fixed_rate) $item_rate = $invoice_fixed_rate;
+      if (empty($item_rate)) die("Could not find an item rate");
       
-      if (is_array($invoice_multiplier)) {
-        $invoice_multiplier = $invoice_multiplier[ $item_project_key ] ?: null;  
-      }
-      if (!empty($invoice_multiplier)) {
-        $item_hours = (float) $item_hours * (float) $invoice_multiplier;      
-        $item_subtotal = (float) $item_hours * (float) $item_rate;
-      }
-      if (!empty($invoice_rate)) {
-        $item_rate = $invoice_rate;
-        $item_subtotal = (float) $item_hours * (float) $item_rate;      
-      }
+      $item_subtotal = (float) $item_hours * (float) $item_rate;
             
-      $projects[ $item_project_key ]['hours'] = (float) $projects[ $item_project_key ]['hours'] + (float) $item_hours;
-      $projects[ $item_project_key ]['hours'] = Format::format_hours($projects[ $item_project_key ]['hours']);
-      $projects[ $item_project_key ]['subtotal'] = (float) $projects[ $item_project_key ]['subtotal'] + (float) $item_subtotal;
-      $projects[ $item_project_key ]['subtotal'] = Format::format_cost($projects[ $item_project_key ]['subtotal']);
+      if (is_array($invoice_fixed_multiplier)) {
+        $invoice_fixed_multiplier = $invoice_fixed_multiplier[ $item_project_key ] ?: null;  
+      }
+      if (!empty($invoice_fixed_multiplier)) {
+        $item_hours = (float) $item_hours * (float) $invoice_fixed_multiplier; 
+        $item_hours = Format::format_hours( $item_hours );
+        $item_subtotal = (float) $item_hours * (float) $item_rate;
+        $item_subtotal = Format::format_cost( $item_subtotal );
+      }
       
+      if (!empty($item['hours'])) $projects[ $item_project_key ]['hours'] += Format::format_hours( $item_hours );
+      if (!empty($item['subtotal'])) $projects[ $item_project_key ]['subtotal'] += Format::format_cost( $item_subtotal );  
+  
     }
     // sort
     $sorted = array();
     foreach($projects as $project) {
       $project['hours'] = Format::format_hours($project['hours']);
+      $project['subtotal'] = Format::format_cost($project['subtotal']);
       $sortkey = Format::normalize_key(implode('-',array(
         $project['hours'],
         $project['name'],
@@ -406,9 +472,24 @@ class WorklogData {
 
   }
   public static function get_tasks_data2($parsed,$invoice=[]) {
+    
+    // init array
     $tasks = array();
-    $firstitem = reset($parsed);
-    $client_rate = Format::format_cost( $firstitem['client-rate'] );
+        
+    // gather data related to current invoice, if passed
+    if (!empty($invoice)) {
+      // details provided directly in invoice
+      $invoice_fixed_rate = @$invoice['rate'] ?: null;
+      $invoice_fixed_multiplier = @$invoice['multiplier'] ?: null;
+      // details provided by invoice client
+      $clients = WorklogData::get_clients_data2($parsed);
+      $invoice_client_key = @$invoice['client'] ?: null;
+      $invoice_client_key = Format::normalize_key( $invoice_client_key );
+      $invoice_client = $clients[ $invoice_client_key ];
+      // rate and taxpercent
+      $invoice_client_rate = (float) trim($clients[ $invoice_client_key ]['rate'],'$');
+    }
+    
     // tasks
     foreach($parsed as $item) {
       $taskkey = Format::normalize_key( $item['client-project'].'-'.$item['title'] );
@@ -425,33 +506,41 @@ class WorklogData {
     // hours and status
     foreach($parsed as $item) {
       
-      $item_project_key = Format::normalize_key( $item['client-project'] );
+      $item_client_rate = Format::format_cost( $item['client-rate'] );
+      $item_client_taxratio = (float) trim( $item['client-taxratio'] ,'%') / 100.0;
+
+      $item_hours = Format::format_hours( $item['hours_multiplied'] );
+      $item_project_key = Format::normalize_key($item['client-project']);
+      
+      // set item rate
+      $item_rate = null; 
+      if ($item_client_rate) $item_rate = $item_client_rate;
+      if ($invoice_client_rate) $item_rate = $invoice_client_rate;
+      if ($invoice_fixed_rate) $item_rate = $invoice_fixed_rate;
+      if (empty($item_rate)) die("Could not find an item rate");
+      
+      $item_subtotal = (float) $item_hours * (float) $item_rate;
+            
+      if (is_array($invoice_fixed_multiplier)) {
+        $invoice_fixed_multiplier = $invoice_fixed_multiplier[ $item_project_key ] ?: null;  
+      }
+      if (!empty($invoice_fixed_multiplier)) {
+        $item_hours = (float) $item_hours * (float) $invoice_fixed_multiplier; 
+        $item_hours = Format::format_hours( $item_hours );
+        $item_subtotal = (float) $item_hours * (float) $item_rate;
+        $item_subtotal = Format::format_cost( $item_subtotal );
+      }
+      
       $item_title = $item['title'];
       $item_status = $item['client-status'];
-      $item_hours = $item['total'];
-      $item_subtotal = $item['subtotal'];
-      
-      $invoice_rate = @$invoice['rate'] ?: null;
-      $invoice_multiplier = @$invoice['multiplier'] ?: null;
-      
-      if (is_array($invoice_multiplier)) {
-        $invoice_multiplier = $invoice_multiplier[ $item_project_key ] ?: null;  
-      }
-      if (!empty($invoice_multiplier)) {
-        $item_hours = (float) $item_hours * (float) $invoice_multiplier;      
-        $item_subtotal = (float) $item_hours * (float) $item_rate;
-      }
-      if (!empty($invoice_rate)) {
-        $item_rate = $invoice_rate;
-        $item_subtotal = (float) $item_hours * (float) $item_rate;      
-      }
-      
+
       $taskkey = Format::normalize_key( $item_project_key.'-'.$item_title );
       $tasks[ $taskkey ]['taskkey'] = $taskkey;
       $tasks[ $taskkey ]['status'] = $item_status;
-      $tasks[ $taskkey ]['hours'] += Format::format_hours($item_hours);
-      $tasks[ $taskkey ]['subtotal'] += Format::format_cost($item_subtotal);
+      $tasks[ $taskkey ]['hours'] += Format::format_hours( $item_hours );
+      $tasks[ $taskkey ]['subtotal'] += Format::format_cost( $item_subtotal );
       $tasks[ $taskkey ]['sittings'] += 1;
+      
     }
     // sort
     $sorted = array();
